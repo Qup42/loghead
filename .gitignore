@@ -1,0 +1,11 @@
+# goreleaser output
+dist/
+# logging destinations
+logs/
+recordings/
+# binary
+loghead
+# IDEs
+.idea/
+# go away with dirty state
+Makefile
