@@ -18,8 +18,9 @@ import (
 )
 
 type Loghead struct {
-	Config     *types.Config
-	Processors []processor.LogProcessor
+	Config        *types.Config
+	MsgProcessors []processor.MsgProcessor
+	LogProcessors []processor.LogProcessor
 }
 
 func (l *Loghead) LogHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,9 +44,12 @@ func (l *Loghead) LogHandler(w http.ResponseWriter, r *http.Request) {
 			Msg:       m,
 			PrivateID: private_id,
 		}
-		for _, p := range l.Processors {
+		for _, p := range l.MsgProcessors {
 			p(msg)
 		}
+	}
+	for _, p := range l.LogProcessors {
+		p(msg)
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -95,7 +99,7 @@ func main() {
 
 	r := mux.NewRouter()
 
-	processors := []processor.LogProcessor{}
+	processors := []processor.MsgProcessor{}
 	if c.Processors.FileLogger {
 		fl := processor.NewFileLogger(c.FileLogger)
 		processors = append(processors, fl.Process)
@@ -109,9 +113,17 @@ func main() {
 		processors = append(processors, processor.Process)
 	}
 
+	logProcessors := []processor.LogProcessor{}
+	if c.Processors.Forward != "" {
+		log.Info().Msgf("Enableing forwarder to %s", c.Processors.Forward)
+		fwd := processor.NewForwarder(c.Processors.Forward)
+		logProcessors = append(logProcessors, fwd.Process)
+	}
+
 	l := Loghead{
-		Config:     &c,
-		Processors: processors,
+		Config:        &c,
+		MsgProcessors: processors,
+		LogProcessors: logProcessors,
 	}
 
 	g := new(errgroup.Group)

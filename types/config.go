@@ -28,6 +28,7 @@ type ProcessorConfig struct {
 	FileLogger bool
 	Metrics    bool
 	Hostinfo   bool
+	Forward    string
 }
 
 type SSHRecorderConfig struct {
@@ -45,6 +46,7 @@ func GetProcessorConfig() ProcessorConfig {
 		FileLogger: viper.GetBool("processors.filelogger"),
 		Metrics:    viper.GetBool("processors.metrics"),
 		Hostinfo:   viper.GetBool("processors.hostinfo"),
+		Forward:    viper.GetString("processors.forward"),
 	}
 }
 

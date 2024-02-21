@@ -7,6 +7,8 @@ listen_addr: "0.0.0.0:5678"
 processors:
   # write logs to a one file per node
   filelogger: true
+  # forward the logs ("https://log.tailscale.io" to forward to tailscale)
+  forward: ""
   # expose the metrics contained in the logs in the prometheus format
   metrics: false
   # log the node's host info to the console
