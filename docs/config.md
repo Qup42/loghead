@@ -20,6 +20,6 @@ filelogger:
   dir: "./logs"
 
 ssh_recorder:
-  listen_addr: "0.0.0.0:5679"
+  listen_addr: "0.0.0.0:80" # the port usually is :80
   dir: "./recordings"
 ```
