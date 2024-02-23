@@ -3,6 +3,7 @@
 ## Unreleased
 
 - refactor: generalize HTTP listener config loading
+- refactor: generalize HTTP listener creation
 
 ## 0.0.2 (2024-02-22)
 

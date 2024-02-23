@@ -94,6 +94,34 @@ func SetupLogging() {
 	}).With().Caller().Logger()
 }
 
+func startTSListener(r *mux.Router, c types.ListenerConfig) error {
+	s := tsnet.Server{
+		Logf:       func(string, ...any) {},
+		AuthKey:    c.TS_AuthKey,
+		ControlURL: c.TS_ControllURL,
+	}
+	defer s.Close()
+
+	ln, err := s.Listen("tcp", fmt.Sprintf(":%s", c.Port))
+	if err != nil {
+		log.Error().Err(err)
+	}
+	defer ln.Close()
+
+	return http.Serve(ln, r)
+}
+
+func startPlainListener(r *mux.Router, c types.ListenerConfig) error {
+	ss := &http.Server{
+		Handler:      r,
+		Addr:         net.JoinHostPort(c.Addr, c.Port),
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	return ss.ListenAndServe()
+}
+
 func main() {
 	SetupLogging()
 
@@ -153,34 +181,14 @@ func main() {
 
 	switch c.SSHRecorder.Listener.Type {
 	case "plain":
-		ss := &http.Server{
-			Handler:      sr,
-			Addr:         net.JoinHostPort(c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port),
-			WriteTimeout: 15 * time.Second,
-			ReadTimeout:  15 * time.Second,
-		}
-
 		g.Go(func() error {
-			return ss.ListenAndServe()
+			return startPlainListener(sr, c.SSHRecorder.Listener)
 		})
 		log.Info().Msgf("SSHRecorder Listening on %s:%s", c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port)
 		break
 	case "tsnet":
-		s := tsnet.Server{
-			Logf:       func(string, ...any) {},
-			AuthKey:    c.SSHRecorder.Listener.TS_AuthKey,
-			ControlURL: "https://vpn.fachschaft.tf",
-		}
-		defer s.Close()
-
-		ln, err := s.Listen("tcp", fmt.Sprintf(":%s", c.SSHRecorder.Listener.Port))
-		if err != nil {
-			log.Error().Err(err)
-		}
-		defer ln.Close()
-
 		g.Go(func() error {
-			return http.Serve(ln, sr)
+			return startTSListener(sr, c.SSHRecorder.Listener)
 		})
 		log.Info().Msgf("SSHRecorder Listening over Tailscale on :%s", c.SSHRecorder.Listener.Port)
 		break
