@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	Addr        string
+	Listener    ListenerConfig
 	FileLogger  FileLoggerConfig
 	Log         LogConfig
 	Processors  ProcessorConfig
@@ -141,13 +141,16 @@ func LoadConfig() Config {
 	if (viper.GetString("ssh_recorder.listener.type") == "tsnet") && (!viper.IsSet("ssh_recorder.listener.tsnet.authKey")) {
 		errorText += "Fatal config error: when using a tsnet listener, authkey must be provided\n"
 	}
+	if (viper.GetString("loghead.listener.type") == "tsnet") && (!viper.IsSet("loghead.listener.tsnet.authKey")) {
+		errorText += "Fatal config error: when using a tsnet listener, authkey must be provided\n"
+	}
 
 	if errorText != "" {
 		log.Error().Msg(strings.TrimSuffix(errorText, "\n"))
 	}
 
 	return Config{
-		Addr:        viper.GetString("listen_addr"),
+		Listener:    GetListenerConfig("loghead"),
 		Log:         GetLogConfig(),
 		FileLogger:  GetFileLoggerConfig(),
 		Processors:  GetProcessorConfig(),

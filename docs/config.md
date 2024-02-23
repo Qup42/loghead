@@ -6,7 +6,14 @@ log:
   level: "info"
   format: "text"
 
-listen_addr: "0.0.0.0:5678"
+loghead:
+  listener:
+    type: "plain" # "plain" or "tsnet"
+    addr: "0.0.0.0"
+    port: "5678"
+#    tsnet:
+#      authKey: ""
+#      controllURL: "https://controllplane.tailscale.com"
 
 processors:
   # write logs to a one file per node

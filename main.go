@@ -161,18 +161,21 @@ func main() {
 
 	r.HandleFunc("/c/{collection:[a-zA-Z0-9-_.]+}/{private_id:[0-9a-f]+}", l.LogHandler).Methods(http.MethodPost)
 	r.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
-	srv := &http.Server{
-		Handler:      r,
-		Addr:         c.Addr,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+
+	switch c.Listener.Type {
+	case "plain":
+		g.Go(func() error {
+			return startPlainListener(r, c.Listener)
+		})
+		log.Info().Msgf("loghead Listening on %s:%s", c.Listener.Addr, c.Listener.Port)
+		break
+	case "tsnet":
+		g.Go(func() error {
+			return startTSListener(r, c.Listener)
+		})
+		log.Info().Msgf("loghead Listening over Tailscale on :%s", c.Listener.Port)
+		break
 	}
-
-	g.Go(func() error {
-		return srv.ListenAndServe()
-	})
-
-	log.Info().Msgf("Listening on %s", l.Config.Addr)
 
 	rec := ssh_recorder.NewSSHRecorder(c.SSHRecorder)
 	sr := mux.NewRouter()
