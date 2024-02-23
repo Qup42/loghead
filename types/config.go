@@ -31,7 +31,7 @@ type ProcessorConfig struct {
 	Forward    string
 }
 
-type SSHRecorderListenerConfig struct {
+type ListenerConfig struct {
 	Type           string
 	Addr           string
 	Port           string
@@ -41,7 +41,7 @@ type SSHRecorderListenerConfig struct {
 
 type SSHRecorderConfig struct {
 	Dir      string
-	Listener SSHRecorderListenerConfig
+	Listener ListenerConfig
 }
 
 const (
@@ -58,20 +58,20 @@ func GetProcessorConfig() ProcessorConfig {
 	}
 }
 
-func GetSSHRecorderListenerConfig() SSHRecorderListenerConfig {
-	return SSHRecorderListenerConfig{
-		Type:           viper.GetString("ssh_recorder.listener.type"),
-		Addr:           viper.GetString("ssh_recorder.listener.addr"),
-		Port:           viper.GetString("ssh_recorder.listener.port"),
-		TS_AuthKey:     viper.GetString("ssh_recorder.listener.tsnet.authKey"),
-		TS_ControllURL: viper.GetString("ssh_recorder.listener.tsnet.controllURL"),
+func GetListenerConfig(base string) ListenerConfig {
+	return ListenerConfig{
+		Type:           viper.GetString(base + ".listener.type"),
+		Addr:           viper.GetString(base + ".listener.addr"),
+		Port:           viper.GetString(base + ".listener.port"),
+		TS_AuthKey:     viper.GetString(base + ".listener.tsnet.authKey"),
+		TS_ControllURL: viper.GetString(base + ".listener.tsnet.controllURL"),
 	}
 }
 
 func GetSSHRecorderConfig() SSHRecorderConfig {
 	return SSHRecorderConfig{
 		Dir:      viper.GetString("ssh_recorder.dir"),
-		Listener: GetSSHRecorderListenerConfig(),
+		Listener: GetListenerConfig("ssh_recorder"),
 	}
 }
 
