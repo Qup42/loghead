@@ -31,9 +31,17 @@ type ProcessorConfig struct {
 	Forward    string
 }
 
+type SSHRecorderListenerConfig struct {
+	Type           string
+	Addr           string
+	Port           string
+	TS_AuthKey     string
+	TS_ControllURL string
+}
+
 type SSHRecorderConfig struct {
-	Addr string
-	Dir  string
+	Dir      string
+	Listener SSHRecorderListenerConfig
 }
 
 const (
@@ -50,10 +58,20 @@ func GetProcessorConfig() ProcessorConfig {
 	}
 }
 
+func GetSSHRecorderListenerConfig() SSHRecorderListenerConfig {
+	return SSHRecorderListenerConfig{
+		Type:           viper.GetString("ssh_recorder.listener.type"),
+		Addr:           viper.GetString("ssh_recorder.listener.addr"),
+		Port:           viper.GetString("ssh_recorder.listener.port"),
+		TS_AuthKey:     viper.GetString("ssh_recorder.listener.tsnet.authKey"),
+		TS_ControllURL: viper.GetString("ssh_recorder.listener.tsnet.controllURL"),
+	}
+}
+
 func GetSSHRecorderConfig() SSHRecorderConfig {
 	return SSHRecorderConfig{
-		Addr: viper.GetString("ssh_recorder.listen_addr"),
-		Dir:  viper.GetString("ssh_recorder.dir"),
+		Dir:      viper.GetString("ssh_recorder.dir"),
+		Listener: GetSSHRecorderListenerConfig(),
 	}
 }
 
@@ -109,11 +127,23 @@ func LoadConfig() Config {
 	viper.SetDefault("processor.metrics", false)
 	viper.SetDefault("processor.hostinfo", false)
 
-	viper.SetDefault("ssh_recorder.listen_addr", "0.0.0.0:5679")
+	viper.SetDefault("ssh_recorder.listener.type", "tsnet")
+	viper.SetDefault("ssh_recorder.listener.addr", "0.0.0.0")
+	viper.SetDefault("ssh_recorder.listener.port", "80")
+	viper.SetDefault("ssh_recorder.tsnet.controllURL", "https://controlplane.tailscale.com")
 	viper.SetDefault("ssh_recorder.dir", "./recordings")
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Warn().Err(err).Msg("Failed to read config")
+	}
+
+	var errorText string
+	if (viper.GetString("ssh_recorder.listener.type") == "tsnet") && (!viper.IsSet("ssh_recorder.listener.tsnet.authKey")) {
+		errorText += "Fatal config error: when using a tsnet listener, authkey must be provided\n"
+	}
+
+	if errorText != "" {
+		log.Error().Msg(strings.TrimSuffix(errorText, "\n"))
 	}
 
 	return Config{

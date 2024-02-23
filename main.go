@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/efekarakus/termcolor"
 	"github.com/gorilla/mux"
 	"github.com/qup42/loghead/processor"
@@ -12,8 +13,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"io"
+	"net"
 	"net/http"
 	"os"
+	"tailscale.com/tsnet"
 	"time"
 )
 
@@ -147,18 +150,41 @@ func main() {
 	sr := mux.NewRouter()
 	sr.HandleFunc("/record", rec.Handle)
 	sr.NotFoundHandler = http.HandlerFunc(rec.Handle)
-	ss := &http.Server{
-		Handler:      sr,
-		Addr:         c.SSHRecorder.Addr,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+
+	switch c.SSHRecorder.Listener.Type {
+	case "plain":
+		ss := &http.Server{
+			Handler:      sr,
+			Addr:         net.JoinHostPort(c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port),
+			WriteTimeout: 15 * time.Second,
+			ReadTimeout:  15 * time.Second,
+		}
+
+		g.Go(func() error {
+			return ss.ListenAndServe()
+		})
+		log.Info().Msgf("SSHRecorder Listening on %s:%s", c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port)
+		break
+	case "tsnet":
+		s := tsnet.Server{
+			Logf:       func(string, ...any) {},
+			AuthKey:    c.SSHRecorder.Listener.TS_AuthKey,
+			ControlURL: "https://vpn.fachschaft.tf",
+		}
+		defer s.Close()
+
+		ln, err := s.Listen("tcp", fmt.Sprintf(":%s", c.SSHRecorder.Listener.Port))
+		if err != nil {
+			log.Error().Err(err)
+		}
+		defer ln.Close()
+
+		g.Go(func() error {
+			return http.Serve(ln, sr)
+		})
+		log.Info().Msgf("SSHRecorder Listening over Tailscale on :%s", c.SSHRecorder.Listener.Port)
+		break
 	}
-
-	g.Go(func() error {
-		return ss.ListenAndServe()
-	})
-
-	log.Info().Msgf("SSHRecorder Listening on %s", l.Config.SSHRecorder.Addr)
 
 	log.Fatal().Err(g.Wait()).Msg("Error running server")
 }
