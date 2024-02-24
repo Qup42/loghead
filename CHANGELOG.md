@@ -5,6 +5,7 @@
 - refactor: generalize HTTP listener config loading
 - refactor: generalize HTTP listener creation
 - feat!: add client log collection as a tsnet listener
+- docs: add BSD-3-Clause license
 
 ## 0.0.2 (2024-02-22)
 
