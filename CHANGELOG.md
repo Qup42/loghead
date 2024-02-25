@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+- fix: detection if ts is up
+
 ## 0.0.3 (2024-02-25)
 
 - refactor: generalize HTTP listener config loading

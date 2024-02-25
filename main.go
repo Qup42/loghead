@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/efekarakus/termcolor"
 	"github.com/gorilla/mux"
@@ -18,7 +17,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"tailscale.com/client/tailscale"
 	"tailscale.com/tsnet"
 	"time"
 )
@@ -97,25 +95,16 @@ func SetupLogging() {
 	}).With().Caller().Logger()
 }
 
-func WaitTSReady(ctx context.Context, lc *tailscale.LocalClient) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+func WaitTSReady(ctx context.Context, s *tsnet.Server) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	for {
-		if ctx.Err() != nil {
-			break
-		}
-		status, _ := lc.Status(ctx)
-		if status.BackendState == "Running" {
-			return nil
-		} else if status.BackendState == "NeedsLogin" {
-			return errors.New("Authentication (Login) required.")
-		} else if status.BackendState == "NeedsMachineAuth" {
-			return errors.New("Authentication (MachineAuth) required.")
-		}
-		time.Sleep(100 * time.Millisecond)
+
+	_, err := s.Up(ctx)
+	if err != nil {
+		return err
 	}
 
-	return errors.New("timeout reached")
+	return nil
 }
 
 func startTSListener(r *mux.Router, c types.ListenerConfig) error {
@@ -125,14 +114,9 @@ func startTSListener(r *mux.Router, c types.ListenerConfig) error {
 		ControlURL: c.TS_ControllURL,
 	}
 	defer s.Close()
-	lc, err := s.LocalClient()
-	if err != nil {
-		log.Error().Err(err).Msg("Could not get local client")
-	}
 
-	err = WaitTSReady(context.Background(), lc)
+	err := WaitTSReady(context.Background(), &s)
 	if err != nil {
-		log.Error().Err(err).Msg("TS not ready.")
 		return err
 	}
 
