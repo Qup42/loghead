@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -108,7 +109,7 @@ func GetLogConfig() LogConfig {
 	}
 }
 
-func LoadConfig() Config {
+func LoadConfig() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.AddConfigPath("/etc/loghead/")
 	viper.AddConfigPath("$HOME/.loghead/")
@@ -134,7 +135,7 @@ func LoadConfig() Config {
 	viper.SetDefault("ssh_recorder.dir", "./recordings")
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Warn().Err(err).Msg("Failed to read config")
+		return nil, errors.New("Failed to read config")
 	}
 
 	var errorText string
@@ -146,14 +147,14 @@ func LoadConfig() Config {
 	}
 
 	if errorText != "" {
-		log.Error().Msg(strings.TrimSuffix(errorText, "\n"))
+		return nil, errors.New(strings.TrimSuffix(errorText, "\n"))
 	}
 
-	return Config{
+	return &Config{
 		Listener:    GetListenerConfig("loghead"),
 		Log:         GetLogConfig(),
 		FileLogger:  GetFileLoggerConfig(),
 		Processors:  GetProcessorConfig(),
 		SSHRecorder: GetSSHRecorderConfig(),
-	}
+	}, nil
 }

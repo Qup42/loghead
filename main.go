@@ -32,12 +32,15 @@ func (l *Loghead) LogHandler(w http.ResponseWriter, r *http.Request) {
 	collection := vars["collection"]
 	private_id := vars["private_id"]
 
-	msg, _ := io.ReadAll(r.Body)
+	msg, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("reading request body failed")
+	}
 	if r.Header.Get("Content-Encoding") == "zstd" {
 		msg = util.ZstdDecode(msg)
 	}
 	var maps []map[string]interface{}
-	err := json.Unmarshal(msg, &maps)
+	err = json.Unmarshal(msg, &maps)
 	if err != nil {
 		log.Error().Err(err).Msg("Unmarshal failed")
 	}
@@ -122,7 +125,7 @@ func startTSListener(r *mux.Router, c types.ListenerConfig) error {
 
 	ln, err := s.Listen("tcp", fmt.Sprintf(":%s", c.Port))
 	if err != nil {
-		log.Error().Err(err)
+		return err
 	}
 	defer ln.Close()
 
@@ -145,14 +148,23 @@ func startPlainListener(r *mux.Router, c types.ListenerConfig) error {
 func main() {
 	SetupLogging()
 
-	c := types.LoadConfig()
+	c, err := types.LoadConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load config")
+	}
+
 	zerolog.SetGlobalLevel(c.Log.Level)
+
+	log.Debug().Msgf("Config: %+v", c)
 
 	r := mux.NewRouter()
 
 	processors := []processor.MsgProcessor{}
 	if c.Processors.FileLogger {
-		fl := processor.NewFileLogger(c.FileLogger)
+		fl, err := processor.NewFileLogger(c.FileLogger)
+		if err != nil {
+			log.Fatal().Err(err)
+		}
 		processors = append(processors, fl.Process)
 	}
 	if c.Processors.Metrics {
@@ -172,7 +184,7 @@ func main() {
 	}
 
 	l := Loghead{
-		Config:        &c,
+		Config:        c,
 		MsgProcessors: processors,
 		LogProcessors: logProcessors,
 	}
@@ -197,7 +209,10 @@ func main() {
 		break
 	}
 
-	rec := ssh_recorder.NewSSHRecorder(c.SSHRecorder)
+	rec, err := ssh_recorder.NewSSHRecorder(c.SSHRecorder)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not create SSH Recorder")
+	}
 	sr := mux.NewRouter()
 	sr.HandleFunc("/record", rec.Handle)
 	sr.NotFoundHandler = http.HandlerFunc(rec.Handle)

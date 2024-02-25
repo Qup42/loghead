@@ -15,12 +15,12 @@ type SSHRecorder struct {
 	Dir string
 }
 
-func NewSSHRecorder(c types.SSHRecorderConfig) SSHRecorder {
+func NewSSHRecorder(c types.SSHRecorderConfig) (*SSHRecorder, error) {
 	err := util.EnsureFolderExists(c.Dir)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create ssh recording directory")
+		return nil, fmt.Errorf("init SSHRecorder: %w", err)
 	}
-	return SSHRecorder{c.Dir}
+	return &SSHRecorder{c.Dir}, nil
 }
 
 func (rec *SSHRecorder) Handle(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +30,10 @@ func (rec *SSHRecorder) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to open file for ssh session recording")
 	}
-	body, _ := io.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("reading request body failed")
+	}
 	_, err = f.Write(body)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to write ssh session recording to file")
