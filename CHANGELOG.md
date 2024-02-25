@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## 0.0.3 (2024-02-25)
 
 - refactor: generalize HTTP listener config loading
 - refactor: generalize HTTP listener creation
