@@ -23,25 +23,26 @@ func NewSSHRecorder(c types.SSHRecorderConfig) (*SSHRecorder, error) {
 	return &SSHRecorder{c.Dir}, nil
 }
 
-func (rec *SSHRecorder) Handle(w http.ResponseWriter, r *http.Request) {
+func (rec *SSHRecorder) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Trace().Msg("Starting SSH Session recording")
 	fn := fmt.Sprintf("ssh-session-%v-*.cast", time.Now().UnixNano())
 	f, err := os.CreateTemp(rec.Dir, fn)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to open file for ssh session recording")
+		return fmt.Errorf("opening ssh session recording file: %w", err)
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error().Err(err).Msg("reading request body failed")
+		return fmt.Errorf("reading request body: %w", err)
 	}
 	_, err = f.Write(body)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to write ssh session recording to file")
+		return fmt.Errorf("writing ssh session recording: %w", err)
 	}
 	log.Debug().Msgf("Recorded %s", f.Name())
 	err = f.Close()
 	if err != nil {
-		log.Error().Err(err).Msg("Could not close ssh session recording file")
+		return fmt.Errorf("closing ssh session recording file: %w", err)
 	}
 	log.Trace().Msg("SSH Session recording finished")
+	return nil
 }

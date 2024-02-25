@@ -27,14 +27,23 @@ type Loghead struct {
 	LogProcessors []processor.LogProcessor
 }
 
-func (l *Loghead) LogHandler(w http.ResponseWriter, r *http.Request) {
+type FailableHandler func(http.ResponseWriter, *http.Request) error
+
+func (fn FailableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := fn(w, r); err != nil {
+		log.Error().Err(err).Str("path", r.RequestURI).Msg("HTTP Request error")
+		http.Error(w, err.Error(), 500)
+	}
+}
+
+func (l *Loghead) LogHandler(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	collection := vars["collection"]
 	private_id := vars["private_id"]
 
 	msg, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error().Err(err).Msg("reading request body failed")
+		return fmt.Errorf("reading request body: %w", err)
 	}
 	if r.Header.Get("Content-Encoding") == "zstd" {
 		msg = util.ZstdDecode(msg)
@@ -42,7 +51,7 @@ func (l *Loghead) LogHandler(w http.ResponseWriter, r *http.Request) {
 	var maps []map[string]interface{}
 	err = json.Unmarshal(msg, &maps)
 	if err != nil {
-		log.Error().Err(err).Msg("Unmarshal failed")
+		return fmt.Errorf("message unmarshal: %w", err)
 	}
 	log.Debug().Msgf("Received %d messages for %s/%s", len(maps)+1, collection, private_id)
 
@@ -60,6 +69,7 @@ func (l *Loghead) LogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
 func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +201,7 @@ func main() {
 
 	g := new(errgroup.Group)
 
-	r.HandleFunc("/c/{collection:[a-zA-Z0-9-_.]+}/{private_id:[0-9a-f]+}", l.LogHandler).Methods(http.MethodPost)
+	r.Handle("/c/{collection:[a-zA-Z0-9-_.]+}/{private_id:[0-9a-f]+}", FailableHandler(l.LogHandler)).Methods(http.MethodPost)
 	r.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
 	switch c.Listener.Type {
@@ -214,8 +224,8 @@ func main() {
 		log.Fatal().Err(err).Msg("Could not create SSH Recorder")
 	}
 	sr := mux.NewRouter()
-	sr.HandleFunc("/record", rec.Handle)
-	sr.NotFoundHandler = http.HandlerFunc(rec.Handle)
+	sr.Handle("/record", FailableHandler(rec.Handle))
+	sr.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
 	switch c.SSHRecorder.Listener.Type {
 	case "plain":
