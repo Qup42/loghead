@@ -5,6 +5,7 @@
 - fix: detection if ts is up
 - style: bubble up and handle errors more consistently
 - fix: endpoints return code 500 for fatal errors
+- fix: bubble up errors that occour when starting a server
 
 ## 0.0.3 (2024-02-25)
 

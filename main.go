@@ -120,7 +120,7 @@ func WaitTSReady(ctx context.Context, s *tsnet.Server) error {
 	return nil
 }
 
-func startTSListener(r *mux.Router, c types.ListenerConfig) error {
+func startTSListener(ctx context.Context, r *mux.Router, c types.ListenerConfig) error {
 	s := tsnet.Server{
 		Logf:       func(string, ...any) {},
 		AuthKey:    c.TS_AuthKey,
@@ -128,7 +128,7 @@ func startTSListener(r *mux.Router, c types.ListenerConfig) error {
 	}
 	defer s.Close()
 
-	err := WaitTSReady(context.Background(), &s)
+	err := WaitTSReady(ctx, &s)
 	if err != nil {
 		return err
 	}
@@ -139,12 +139,30 @@ func startTSListener(r *mux.Router, c types.ListenerConfig) error {
 	}
 	defer ln.Close()
 
+	ss := &http.Server{
+		Handler:      r,
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	serveErr := make(chan error, 1)
+	go func() {
+		serveErr <- ss.Serve(ln)
+	}()
 	log.Debug().Msg("TS ready and listening")
 
-	return http.Serve(ln, r)
+	select {
+	case <-ctx.Done():
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err = ss.Shutdown(ctx)
+	case err = <-serveErr:
+	}
+
+	return err
 }
 
-func startPlainListener(r *mux.Router, c types.ListenerConfig) error {
+func startPlainListener(ctx context.Context, r *mux.Router, c types.ListenerConfig) error {
 	ss := &http.Server{
 		Handler:      r,
 		Addr:         net.JoinHostPort(c.Addr, c.Port),
@@ -152,7 +170,20 @@ func startPlainListener(r *mux.Router, c types.ListenerConfig) error {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	return ss.ListenAndServe()
+	serveErr := make(chan error, 1)
+	go func() {
+		serveErr <- ss.ListenAndServe()
+	}()
+
+	var err error
+	select {
+	case <-ctx.Done():
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err = ss.Shutdown(ctx)
+	case err = <-serveErr:
+	}
+	return err
 }
 
 func main() {
@@ -199,7 +230,7 @@ func main() {
 		LogProcessors: logProcessors,
 	}
 
-	g := new(errgroup.Group)
+	g, ctx := errgroup.WithContext(context.Background())
 
 	r.Handle("/c/{collection:[a-zA-Z0-9-_.]+}/{private_id:[0-9a-f]+}", FailableHandler(l.LogHandler)).Methods(http.MethodPost)
 	r.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
@@ -207,13 +238,13 @@ func main() {
 	switch c.Listener.Type {
 	case "plain":
 		g.Go(func() error {
-			return startPlainListener(r, c.Listener)
+			return startPlainListener(ctx, r, c.Listener)
 		})
 		log.Info().Msgf("loghead Listening on %s:%s", c.Listener.Addr, c.Listener.Port)
 		break
 	case "tsnet":
 		g.Go(func() error {
-			return startTSListener(r, c.Listener)
+			return startTSListener(ctx, r, c.Listener)
 		})
 		log.Info().Msgf("loghead Listening over Tailscale on :%s", c.Listener.Port)
 		break
@@ -230,17 +261,20 @@ func main() {
 	switch c.SSHRecorder.Listener.Type {
 	case "plain":
 		g.Go(func() error {
-			return startPlainListener(sr, c.SSHRecorder.Listener)
+			return startPlainListener(ctx, sr, c.SSHRecorder.Listener)
 		})
 		log.Info().Msgf("SSHRecorder Listening on %s:%s", c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port)
 		break
 	case "tsnet":
 		g.Go(func() error {
-			return startTSListener(sr, c.SSHRecorder.Listener)
+			return startTSListener(ctx, sr, c.SSHRecorder.Listener)
 		})
 		log.Info().Msgf("SSHRecorder Listening over Tailscale on :%s", c.SSHRecorder.Listener.Port)
 		break
 	}
 
-	log.Fatal().Err(g.Wait()).Msg("Error running server")
+	err = g.Wait()
+	if err != nil {
+		log.Fatal().Err(err).Msg("error running server")
+	}
 }
