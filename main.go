@@ -151,7 +151,7 @@ func startTSListener(ctx context.Context, r *mux.Router, c types.ListenerConfig)
 	go func() {
 		serveErr <- ss.Serve(ln)
 	}()
-	log.Debug().Msg("TS ready and listening")
+	log.Info().Msgf("Ready and listening over tailscale on :%s", c.Port)
 
 	select {
 	case <-ctx.Done():
@@ -248,7 +248,7 @@ func main() {
 		g.Go(func() error {
 			return startTSListener(ctx, r, c.Listener)
 		})
-		log.Info().Msgf("loghead Listening over Tailscale on :%s", c.Listener.Port)
+		log.Info().Msgf("Starting loghead listener over Tailscale on :%s", c.Listener.Port)
 		break
 	}
 
@@ -271,7 +271,7 @@ func main() {
 		g.Go(func() error {
 			return startTSListener(ctx, sr, c.SSHRecorder.Listener)
 		})
-		log.Info().Msgf("SSHRecorder Listening over Tailscale on :%s", c.SSHRecorder.Listener.Port)
+		log.Info().Msgf("Starting SSHRecorder listener over Tailscale on :%s", c.SSHRecorder.Listener.Port)
 		break
 	}
 

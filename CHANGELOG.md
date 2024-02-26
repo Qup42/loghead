@@ -8,6 +8,7 @@
 - fix: bubble up errors that occour when starting a server
 - feat: can set ts hostname and state dir via config
 - feat: write ts logs to logs as level trace
+- fix: log messages during ts listener startup
 
 ## 0.0.3 (2024-02-25)
 
