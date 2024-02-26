@@ -38,6 +38,8 @@ type ListenerConfig struct {
 	Port           string
 	TS_AuthKey     string
 	TS_ControllURL string
+	TS_HostName    string
+	TS_Dir         string
 }
 
 type SSHRecorderConfig struct {
@@ -66,6 +68,8 @@ func GetListenerConfig(base string) ListenerConfig {
 		Port:           viper.GetString(base + ".listener.port"),
 		TS_AuthKey:     viper.GetString(base + ".listener.tsnet.authKey"),
 		TS_ControllURL: viper.GetString(base + ".listener.tsnet.controllURL"),
+		TS_HostName:    viper.GetString(base + ".listener.tsnet.hostname"),
+		TS_Dir:         viper.GetString(base + ".listener.tsnet.dir"),
 	}
 }
 

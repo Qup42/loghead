@@ -6,6 +6,7 @@
 - style: bubble up and handle errors more consistently
 - fix: endpoints return code 500 for fatal errors
 - fix: bubble up errors that occour when starting a server
+- feat: can set ts hostname and state dir via config
 
 ## 0.0.3 (2024-02-25)
 

@@ -125,6 +125,8 @@ func startTSListener(ctx context.Context, r *mux.Router, c types.ListenerConfig)
 		Logf:       func(string, ...any) {},
 		AuthKey:    c.TS_AuthKey,
 		ControlURL: c.TS_ControllURL,
+		Hostname:   c.TS_HostName,
+		Dir:        c.TS_Dir,
 	}
 	defer s.Close()
 
