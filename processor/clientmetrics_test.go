@@ -69,12 +69,12 @@ func TestProcessMetrics(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.in, func(t *testing.T) {
-			cm := NewClientMetrics()
-			cm.processMetrics(tc.in, "")
+			ms := NewMetricsService()
+			ms.processMetrics(tc.in, "")
 			out := map[string]map[int]Metric{"": tc.out}
 
-			if !reflect.DeepEqual(out, cm.Metrics) {
-				t.Fatalf(`processMetrics("%s") = %+v, want %+v`, tc.in, cm.Metrics, out)
+			if !reflect.DeepEqual(out, ms.Metrics) {
+				t.Fatalf(`processMetrics("%s") = %+v, want %+v`, tc.in, ms.Metrics, out)
 			}
 		})
 	}

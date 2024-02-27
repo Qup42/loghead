@@ -24,15 +24,15 @@ type Metric struct {
 	Type   MetricType
 }
 
-type ClientMetrics struct {
+type MetricsService struct {
 	Registry           *prometheus.Registry
 	Metrics            map[string]map[int]Metric
 	GaugePromMetrics   map[string]*prometheus.GaugeVec
 	CounterPromMetrics map[string]*prometheus.CounterVec
 }
 
-func NewClientMetrics() ClientMetrics {
-	return ClientMetrics{
+func NewMetricsService() *MetricsService {
+	return &MetricsService{
 		Registry:           prometheus.NewRegistry(),
 		Metrics:            map[string]map[int]Metric{},
 		GaugePromMetrics:   map[string]*prometheus.GaugeVec{},
@@ -68,52 +68,52 @@ func readVarint(in []byte) (int, int) {
 	return int(n), i
 }
 
-func (cm *ClientMetrics) createGauge(m Metric, private_id string) {
+func (ms *MetricsService) createGauge(m Metric, private_id string) {
 	metric := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: m.Name,
 		},
 		[]string{"private_id"})
 	metric.With(prometheus.Labels{"private_id": private_id}).Set(float64(m.Value))
-	cm.GaugePromMetrics[m.Name] = metric
+	ms.GaugePromMetrics[m.Name] = metric
 }
 
-func (cm *ClientMetrics) createCounter(m Metric, private_id string) {
+func (ms *MetricsService) createCounter(m Metric, private_id string) {
 	metric := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: m.Name,
 		},
 		[]string{"private_id"})
 	metric.With(prometheus.Labels{"private_id": private_id}).Add(float64(m.Value))
-	cm.CounterPromMetrics[m.Name] = metric
+	ms.CounterPromMetrics[m.Name] = metric
 }
 
-func (cm *ClientMetrics) registerMetric(m Metric, private_id string) {
+func (ms *MetricsService) registerMetric(m Metric, private_id string) {
 	switch m.Type {
 	case Gauge:
-		if _, ok := cm.GaugePromMetrics[m.Name]; ok {
+		if _, ok := ms.GaugePromMetrics[m.Name]; ok {
 			log.Debug().Msgf("Metric `%s` already registered.", m.Name)
 		} else {
-			cm.createGauge(m, private_id)
-			cm.Registry.MustRegister(cm.GaugePromMetrics[m.Name])
+			ms.createGauge(m, private_id)
+			ms.Registry.MustRegister(ms.GaugePromMetrics[m.Name])
 		}
 		break
 	case Counter:
-		if _, ok := cm.CounterPromMetrics[m.Name]; ok {
+		if _, ok := ms.CounterPromMetrics[m.Name]; ok {
 			log.Debug().Msgf("Metric `%s` already registered.", m.Name)
 		} else {
-			cm.createCounter(m, private_id)
-			cm.Registry.MustRegister(cm.CounterPromMetrics[m.Name])
+			ms.createCounter(m, private_id)
+			ms.Registry.MustRegister(ms.CounterPromMetrics[m.Name])
 		}
 		break
 	}
 }
 
-func (cm *ClientMetrics) updateMetric(m Metric, private_id string, value int) {
+func (ms *MetricsService) updateMetric(m Metric, private_id string, value int) {
 	switch m.Type {
 	case Gauge:
 		log.Debug().Msgf("%s := %d", m.Name, m.Value)
-		cm.GaugePromMetrics[m.Name].With(prometheus.Labels{"private_id": private_id}).Add(float64(value))
+		ms.GaugePromMetrics[m.Name].With(prometheus.Labels{"private_id": private_id}).Add(float64(value))
 		break
 	case Counter:
 		if value < 0 {
@@ -121,24 +121,24 @@ func (cm *ClientMetrics) updateMetric(m Metric, private_id string, value int) {
 			return
 		}
 		log.Debug().Msgf("%s -(%+d)-> %d", m.Name, value, m.Value)
-		cm.CounterPromMetrics[m.Name].With(prometheus.Labels{"private_id": private_id}).Add(float64(value))
+		ms.CounterPromMetrics[m.Name].With(prometheus.Labels{"private_id": private_id}).Add(float64(value))
 		break
 	}
 }
 
-func (cm *ClientMetrics) Process(msg LogtailMsg) {
+func (ms *MetricsService) Process(msg LogtailMsg) {
 	if metrics, ok := msg.Msg["metrics"]; ok {
 		metricss := metrics.(string)
-		cm.processMetrics(metricss, msg.PrivateID)
+		ms.processMetrics(metricss, msg.PrivateID)
 	}
 }
 
-func (cm *ClientMetrics) processMetrics(in string, private_id string) {
+func (ms *MetricsService) processMetrics(in string, private_id string) {
 	var m *Metric = nil
-	cmetrics, ok := cm.Metrics[private_id]
+	cmetrics, ok := ms.Metrics[private_id]
 	if !ok {
 		cmetrics = map[int]Metric{}
-		cm.Metrics[private_id] = cmetrics
+		ms.Metrics[private_id] = cmetrics
 	}
 	i := 0
 	for i < len(in) {
@@ -173,7 +173,7 @@ func (cm *ClientMetrics) processMetrics(in string, private_id string) {
 				mm := *m
 				cmetrics[w] = mm
 				log.Info().Msgf("Registered Metric `%s` (%d) with init %d", mm.Name, mm.WireID, mm.Value)
-				cm.registerMetric(mm, private_id)
+				ms.registerMetric(mm, private_id)
 				m = nil
 			} else {
 				log.Warn().Msgf("WireID %d unknown", w)
@@ -187,7 +187,7 @@ func (cm *ClientMetrics) processMetrics(in string, private_id string) {
 			i += ii
 			if entry, ok := cmetrics[w]; ok {
 				entry.Value += v
-				cm.updateMetric(entry, private_id, v)
+				ms.updateMetric(entry, private_id, v)
 				cmetrics[w] = entry
 			} else {
 				log.Warn().Msgf("WireID %d unknown", w)
@@ -197,6 +197,6 @@ func (cm *ClientMetrics) processMetrics(in string, private_id string) {
 	}
 }
 
-func (cm *ClientMetrics) PromHandler() http.Handler {
-	return promhttp.HandlerFor(cm.Registry, promhttp.HandlerOpts{Registry: cm.Registry})
+func (ms *MetricsService) PromHandler() http.Handler {
+	return promhttp.HandlerFor(ms.Registry, promhttp.HandlerOpts{Registry: ms.Registry})
 }

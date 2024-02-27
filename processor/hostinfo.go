@@ -1,8 +1,8 @@
 package processor
 
 import (
+	"fmt"
 	"github.com/mitchellh/mapstructure"
-	"github.com/rs/zerolog/log"
 )
 
 type HostInfo struct {
@@ -24,13 +24,16 @@ type HostInfo struct {
 	UserspaceRouter bool   `mapstructure:"UserspaceRouter"`
 }
 
-func Process(msg LogtailMsg) {
+type HostInfoService struct {
+}
+
+func (hs *HostInfoService) Process(msg LogtailMsg) error {
 	if h, ok := msg.Msg["Hostinfo"]; ok {
 		var hi HostInfo
 		err := mapstructure.Decode(h, &hi)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to unmarshal HostInfo")
+			return fmt.Errorf("unmarshaling HostInfo: %w", err)
 		}
-		log.Debug().Msgf("HostInfo: %+v", hi)
 	}
+	return nil
 }

@@ -2,25 +2,26 @@ package processor
 
 import (
 	"bytes"
-	"github.com/rs/zerolog/log"
+	"fmt"
 	"net/http"
 )
 
-type Forwarder struct {
+type ForwardingService struct {
 	Addr string
 }
 
-func NewForwarder(addr string) Forwarder {
-	return Forwarder{addr}
+func NewForwardingService(addr string) *ForwardingService {
+	return &ForwardingService{addr}
 }
 
-func (fwd *Forwarder) Process(m []byte) {
+func (fwd *ForwardingService) Forward(m []byte) error {
 	req, err := http.NewRequest("POST", fwd.Addr, bytes.NewReader(m))
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating forward request")
+		return fmt.Errorf("Error creating forward request")
 	}
 	_, err = http.DefaultClient.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msg("Error forwarding log")
+		return fmt.Errorf("Error forwarding log")
 	}
+	return nil
 }

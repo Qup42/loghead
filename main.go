@@ -2,81 +2,22 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/efekarakus/termcolor"
 	"github.com/gorilla/mux"
 	"github.com/qup42/loghead/processor"
-	"github.com/qup42/loghead/ssh_recorder"
+	"github.com/qup42/loghead/ssh"
 	"github.com/qup42/loghead/types"
-	"github.com/qup42/loghead/util"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
-	"io"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"tailscale.com/tsnet"
 	"time"
 )
-
-type Loghead struct {
-	Config        *types.Config
-	MsgProcessors []processor.MsgProcessor
-	LogProcessors []processor.LogProcessor
-}
-
-type FailableHandler func(http.ResponseWriter, *http.Request) error
-
-func (fn FailableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := fn(w, r); err != nil {
-		log.Error().Err(err).Str("path", r.RequestURI).Msg("HTTP Request error")
-		http.Error(w, err.Error(), 500)
-	}
-}
-
-func (l *Loghead) LogHandler(w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-	collection := vars["collection"]
-	private_id := vars["private_id"]
-
-	msg, err := io.ReadAll(r.Body)
-	if err != nil {
-		return fmt.Errorf("reading request body: %w", err)
-	}
-	if r.Header.Get("Content-Encoding") == "zstd" {
-		msg = util.ZstdDecode(msg)
-	}
-	var maps []map[string]interface{}
-	err = json.Unmarshal(msg, &maps)
-	if err != nil {
-		return fmt.Errorf("message unmarshal: %w", err)
-	}
-	log.Debug().Msgf("Received %d messages for %s/%s", len(maps)+1, collection, private_id)
-
-	for _, m := range maps {
-		msg := processor.LogtailMsg{
-			Msg:       m,
-			PrivateID: private_id,
-		}
-		for _, p := range l.MsgProcessors {
-			p(msg)
-		}
-	}
-	for _, p := range l.LogProcessors {
-		p(msg)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	return nil
-}
-
-func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	log.Warn().Msgf("Unknown path %s called", r.RequestURI)
-
-	w.WriteHeader(http.StatusNotFound)
-}
 
 func SetupLogging() {
 	var colors bool
@@ -108,7 +49,7 @@ func SetupLogging() {
 	}).With().Caller().Logger()
 }
 
-func WaitTSReady(ctx context.Context, s *tsnet.Server) error {
+func waitTSReady(ctx context.Context, s *tsnet.Server) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -120,28 +61,8 @@ func WaitTSReady(ctx context.Context, s *tsnet.Server) error {
 	return nil
 }
 
-func startTSListener(ctx context.Context, r *mux.Router, c types.ListenerConfig) error {
-	s := tsnet.Server{
-		Logf:       func(format string, v ...any) { log.Trace().Str("ts", c.TS.HostName).Msgf(format, v...) },
-		AuthKey:    c.TS.AuthKey,
-		ControlURL: c.TS.ControllURL,
-		Hostname:   c.TS.HostName,
-		Dir:        c.TS.Dir,
-	}
-	defer s.Close()
-
-	err := WaitTSReady(ctx, &s)
-	if err != nil {
-		return err
-	}
-
-	ln, err := s.Listen("tcp", fmt.Sprintf(":%s", c.Port))
-	if err != nil {
-		return err
-	}
-	defer ln.Close()
-
-	ss := &http.Server{
+func serve(ctx context.Context, r *mux.Router, ln net.Listener) error {
+	s := http.Server{
 		Handler:      r,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
@@ -149,32 +70,7 @@ func startTSListener(ctx context.Context, r *mux.Router, c types.ListenerConfig)
 
 	serveErr := make(chan error, 1)
 	go func() {
-		serveErr <- ss.Serve(ln)
-	}()
-	log.Info().Msgf("Ready and listening over tailscale on :%s", c.Port)
-
-	select {
-	case <-ctx.Done():
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		err = ss.Shutdown(ctx)
-	case err = <-serveErr:
-	}
-
-	return err
-}
-
-func startPlainListener(ctx context.Context, r *mux.Router, c types.ListenerConfig) error {
-	ss := &http.Server{
-		Handler:      r,
-		Addr:         net.JoinHostPort(c.Addr, c.Port),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
-
-	serveErr := make(chan error, 1)
-	go func() {
-		serveErr <- ss.ListenAndServe()
+		serveErr <- s.Serve(ln)
 	}()
 
 	var err error
@@ -182,10 +78,31 @@ func startPlainListener(ctx context.Context, r *mux.Router, c types.ListenerConf
 	case <-ctx.Done():
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		err = ss.Shutdown(ctx)
+		err = s.Shutdown(ctx)
 	case err = <-serveErr:
 	}
 	return err
+}
+
+func makeTS(ctx context.Context, c types.ListenerConfig) (*tsnet.Server, error) {
+	s := tsnet.Server{
+		Logf: func(format string, v ...any) {
+			log.Trace().Str("ts", c.TS.HostName).Msgf(format, v...)
+		},
+		AuthKey:    c.TS.AuthKey,
+		ControlURL: c.TS.ControllURL,
+		Hostname:   c.TS.HostName,
+		Dir:        c.TS.Dir,
+	}
+
+	err := waitTSReady(ctx, &s)
+	if err != nil {
+		// TODO: handle error during teardown
+		_ = s.Close()
+		return nil, fmt.Errorf("create tsnet.Server: %w", err)
+	}
+
+	return &s, nil
 }
 
 func main() {
@@ -200,80 +117,102 @@ func main() {
 
 	log.Debug().Msgf("Config: %+v", c)
 
-	r := mux.NewRouter()
-
-	processors := []processor.MsgProcessor{}
+	var fls *processor.FileLoggerService
+	var fwd *processor.ForwardingService
+	var hs *processor.HostInfoService
+	var ms *processor.MetricsService
+	var rs *ssh.RecordingService
 	if c.Processors.FileLogger {
-		fl, err := processor.NewFileLogger(c.FileLogger)
+		fls, err = processor.NewFileLoggerService(c.FileLogger)
 		if err != nil {
 			log.Fatal().Err(err)
 		}
-		processors = append(processors, fl.Process)
 	}
 	if c.Processors.Metrics {
-		cm := processor.NewClientMetrics()
-		processors = append(processors, cm.Process)
-		r.Path("/metrics").Handler(cm.PromHandler())
+		ms = processor.NewMetricsService()
 	}
 	if c.Processors.Hostinfo {
-		processors = append(processors, processor.Process)
+		hs = &processor.HostInfoService{}
 	}
-
-	logProcessors := []processor.LogProcessor{}
 	if c.Processors.Forward != "" {
 		log.Info().Msgf("Enableing forwarder to %s", c.Processors.Forward)
-		fwd := processor.NewForwarder(c.Processors.Forward)
-		logProcessors = append(logProcessors, fwd.Process)
+		fwd = processor.NewForwardingService(c.Processors.Forward)
 	}
-
-	l := Loghead{
-		Config:        c,
-		MsgProcessors: processors,
-		LogProcessors: logProcessors,
-	}
-
-	g, ctx := errgroup.WithContext(context.Background())
-
-	r.Handle("/c/{collection:[a-zA-Z0-9-_.]+}/{private_id:[0-9a-f]+}", FailableHandler(l.LogHandler)).Methods(http.MethodPost)
-	r.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
-
-	switch c.Listener.Type {
-	case "plain":
-		g.Go(func() error {
-			return startPlainListener(ctx, r, c.Listener)
-		})
-		log.Info().Msgf("loghead Listening on %s:%s", c.Listener.Addr, c.Listener.Port)
-		break
-	case "tsnet":
-		g.Go(func() error {
-			return startTSListener(ctx, r, c.Listener)
-		})
-		log.Info().Msgf("Starting loghead listener over Tailscale on :%s", c.Listener.Port)
-		break
-	}
-
-	rec, err := ssh_recorder.NewSSHRecorder(c.SSHRecorder)
+	rs, err = ssh.NewRecordingService(c.SSHRecorder)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not create SSH Recorder")
 	}
-	sr := mux.NewRouter()
-	sr.Handle("/record", FailableHandler(rec.Handle))
-	sr.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
+	ctx := context.Background()
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
+
+	// logtail
+	ltr := mux.NewRouter()
+	addClientLogsRoutes(ltr, c, fwd, fls, hs, ms)
+
+	var ln net.Listener
+	switch c.Listener.Type {
+	case "plain":
+		ln, err = net.Listen("tcp", net.JoinHostPort(c.Listener.Addr, c.Listener.Port))
+		defer ln.Close()
+		if err != nil {
+			log.Fatal().Err(err).Msg("starting listener")
+		}
+		log.Info().Msgf("loghead Listening on %s:%s", c.Listener.Addr, c.Listener.Port)
+	case "tsnet":
+		s, err := makeTS(ctx, c.Listener)
+		defer s.Close()
+		if err != nil {
+			log.Fatal().Err(err).Msg("starting ts")
+		}
+
+		ln, err = s.Listen("tcp", fmt.Sprintf(":%s", c.Listener.Port))
+		defer ln.Close()
+		if err != nil {
+			log.Fatal().Err(err).Msg("starting ts listener")
+		}
+		log.Info().Msgf("loghead Listening over tailscale on :%s", c.Listener.Port)
+	default:
+		log.Fatal().Msgf("unknown listener type %s", c.Listener.Type)
+	}
+	g.Go(func() error {
+		return serve(ctx, ltr, ln)
+	})
+
+	// SSH session recording
+	sr := mux.NewRouter()
+	addSSHRecordingRoutes(sr, rs)
+
+	//	var ln net.Listener
 	switch c.SSHRecorder.Listener.Type {
 	case "plain":
-		g.Go(func() error {
-			return startPlainListener(ctx, sr, c.SSHRecorder.Listener)
-		})
+		ln, err = net.Listen("tcp", net.JoinHostPort(c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port))
+		defer ln.Close()
+		if err != nil {
+			log.Fatal().Err(err).Msg("starting listener")
+		}
 		log.Info().Msgf("SSHRecorder Listening on %s:%s", c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port)
-		break
 	case "tsnet":
-		g.Go(func() error {
-			return startTSListener(ctx, sr, c.SSHRecorder.Listener)
-		})
-		log.Info().Msgf("Starting SSHRecorder listener over Tailscale on :%s", c.SSHRecorder.Listener.Port)
-		break
+		s, err := makeTS(ctx, c.SSHRecorder.Listener)
+		defer s.Close()
+		if err != nil {
+			log.Fatal().Err(err).Msg("starting ts")
+		}
+
+		ln, err = s.Listen("tcp", fmt.Sprintf(":%s", c.SSHRecorder.Listener.Port))
+		defer ln.Close()
+		if err != nil {
+			log.Fatal().Err(err).Msg("starting ts listener")
+		}
+		log.Info().Msgf("SSHRecorder Listening over tailscale on :%s", c.SSHRecorder.Listener.Port)
+	default:
+		log.Fatal().Msgf("unknown listener type %s", c.Listener.Type)
 	}
+	g.Go(func() error {
+		return serve(ctx, sr, ln)
+	})
 
 	err = g.Wait()
 	if err != nil {
