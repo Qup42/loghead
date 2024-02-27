@@ -10,6 +10,7 @@
 - feat: write ts logs to logs as level trace
 - fix: log messages during ts listener startup
 - build: use distroless/base-debian12 as base image
+- refactor: extract ts settings into substruct
 
 ## 0.0.3 (2024-02-25)
 

@@ -33,13 +33,17 @@ type ProcessorConfig struct {
 }
 
 type ListenerConfig struct {
-	Type           string
-	Addr           string
-	Port           string
-	TS_AuthKey     string
-	TS_ControllURL string
-	TS_HostName    string
-	TS_Dir         string
+	Type string
+	Addr string
+	Port string
+	TS   TSConfig
+}
+
+type TSConfig struct {
+	AuthKey     string
+	ControllURL string
+	HostName    string
+	Dir         string
 }
 
 type SSHRecorderConfig struct {
@@ -63,13 +67,19 @@ func GetProcessorConfig() ProcessorConfig {
 
 func GetListenerConfig(base string) ListenerConfig {
 	return ListenerConfig{
-		Type:           viper.GetString(base + ".listener.type"),
-		Addr:           viper.GetString(base + ".listener.addr"),
-		Port:           viper.GetString(base + ".listener.port"),
-		TS_AuthKey:     viper.GetString(base + ".listener.tsnet.authKey"),
-		TS_ControllURL: viper.GetString(base + ".listener.tsnet.controllURL"),
-		TS_HostName:    viper.GetString(base + ".listener.tsnet.hostname"),
-		TS_Dir:         viper.GetString(base + ".listener.tsnet.dir"),
+		Type: viper.GetString(base + ".listener.type"),
+		Addr: viper.GetString(base + ".listener.addr"),
+		Port: viper.GetString(base + ".listener.port"),
+		TS:   GetTSConfig(base + ".listener"),
+	}
+}
+
+func GetTSConfig(base string) TSConfig {
+	return TSConfig{
+		AuthKey:     viper.GetString(base + ".tsnet.authKey"),
+		ControllURL: viper.GetString(base + ".tsnet.controllURL"),
+		HostName:    viper.GetString(base + ".tsnet.hostname"),
+		Dir:         viper.GetString(base + ".tsnet.dir"),
 	}
 }
 

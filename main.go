@@ -122,11 +122,11 @@ func WaitTSReady(ctx context.Context, s *tsnet.Server) error {
 
 func startTSListener(ctx context.Context, r *mux.Router, c types.ListenerConfig) error {
 	s := tsnet.Server{
-		Logf:       func(format string, v ...any) { log.Trace().Str("ts", c.TS_HostName).Msgf(format, v...) },
-		AuthKey:    c.TS_AuthKey,
-		ControlURL: c.TS_ControllURL,
-		Hostname:   c.TS_HostName,
-		Dir:        c.TS_Dir,
+		Logf:       func(format string, v ...any) { log.Trace().Str("ts", c.TS.HostName).Msgf(format, v...) },
+		AuthKey:    c.TS.AuthKey,
+		ControlURL: c.TS.ControllURL,
+		Hostname:   c.TS.HostName,
+		Dir:        c.TS.Dir,
 	}
 	defer s.Close()
 
