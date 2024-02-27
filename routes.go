@@ -38,7 +38,7 @@ func addClientLogsRoutes(
 	ms *processor.MetricsService) {
 
 	r.Handle("/c/{collection:[a-zA-Z0-9-_.]+}/{private_id:[0-9a-f]+}", handleTailnodeLogs(fwd, fl, hi, ms)).Methods(http.MethodPost)
-	if c.Processors.Metrics {
+	if c.Loghead.Processors.Metrics {
 		r.Handle("/metrics", handleMetrics(ms))
 	}
 	r.NotFoundHandler = handleNotFound()

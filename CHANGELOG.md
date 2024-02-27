@@ -12,6 +12,7 @@
 - build: use distroless/base-debian12 as base image
 - refactor: extract ts settings into substruct
 - refactor: encapsulate everything in services
+- refactor!: group loghead config options
 
 ## 0.0.3 (2024-02-25)
 

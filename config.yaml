@@ -3,23 +3,23 @@ log:
   format: "text"
 
 loghead:
+  processors:
+    # write logs to a one file per node
+    filelogger:
+      enabled: true
+      dir: "./logs"
+    # forward the logs to another logtail instance
+    forward:
+      enabled: false
+      addr: "https://log.tailscale.io"
+    # expose the metrics contained in the logs in the prometheus format
+    metrics: false
+    # log the node's host info to the console
+    hostinfo: false
   listener:
     type: "plain" # "plain" or "tsnet"
     addr: "0.0.0.0"
     port: "5678"
-
-processors:
-  # write logs to a one file per node
-  filelogger: true
-  # forward the logs ("https://log.tailscale.io" to forward to tailscale)
-  forward: ""
-  # expose the metrics contained in the logs in the prometheus format
-  metrics: false
-  # log the node's host info to the console
-  hostinfo: false
-
-filelogger:
-  dir: "./logs"
 
 ssh_recorder:
   dir: "./recordings"

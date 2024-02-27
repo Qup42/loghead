@@ -122,21 +122,21 @@ func main() {
 	var hs *processor.HostInfoService
 	var ms *processor.MetricsService
 	var rs *ssh.RecordingService
-	if c.Processors.FileLogger {
-		fls, err = processor.NewFileLoggerService(c.FileLogger)
+	if c.Loghead.Processors.FileLogger.Enabled {
+		fls, err = processor.NewFileLoggerService(c.Loghead.Processors.FileLogger)
 		if err != nil {
 			log.Fatal().Err(err)
 		}
 	}
-	if c.Processors.Metrics {
+	if c.Loghead.Processors.Metrics {
 		ms = processor.NewMetricsService()
 	}
-	if c.Processors.Hostinfo {
+	if c.Loghead.Processors.Hostinfo {
 		hs = &processor.HostInfoService{}
 	}
-	if c.Processors.Forward != "" {
-		log.Info().Msgf("Enableing forwarder to %s", c.Processors.Forward)
-		fwd = processor.NewForwardingService(c.Processors.Forward)
+	if c.Loghead.Processors.Forward.Enabled {
+		log.Info().Msgf("Enableing forwarder to %s", c.Loghead.Processors.Forward.Addr)
+		fwd = processor.NewForwardingService(c.Loghead.Processors.Forward.Addr)
 	}
 	rs, err = ssh.NewRecordingService(c.SSHRecorder)
 	if err != nil {
@@ -153,29 +153,29 @@ func main() {
 	addClientLogsRoutes(ltr, c, fwd, fls, hs, ms)
 
 	var ln net.Listener
-	switch c.Listener.Type {
+	switch c.Loghead.Listener.Type {
 	case "plain":
-		ln, err = net.Listen("tcp", net.JoinHostPort(c.Listener.Addr, c.Listener.Port))
+		ln, err = net.Listen("tcp", net.JoinHostPort(c.Loghead.Listener.Addr, c.Loghead.Listener.Port))
 		defer ln.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting listener")
 		}
-		log.Info().Msgf("loghead Listening on %s:%s", c.Listener.Addr, c.Listener.Port)
+		log.Info().Msgf("loghead Listening on %s:%s", c.Loghead.Listener.Addr, c.Loghead.Listener.Port)
 	case "tsnet":
-		s, err := makeTS(ctx, c.Listener)
+		s, err := makeTS(ctx, c.Loghead.Listener)
 		defer s.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting ts")
 		}
 
-		ln, err = s.Listen("tcp", fmt.Sprintf(":%s", c.Listener.Port))
+		ln, err = s.Listen("tcp", fmt.Sprintf(":%s", c.Loghead.Listener.Port))
 		defer ln.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting ts listener")
 		}
-		log.Info().Msgf("loghead Listening over tailscale on :%s", c.Listener.Port)
+		log.Info().Msgf("loghead Listening over tailscale on :%s", c.Loghead.Listener.Port)
 	default:
-		log.Fatal().Msgf("unknown listener type %s", c.Listener.Type)
+		log.Fatal().Msgf("unknown listener type %s", c.Loghead.Listener.Type)
 	}
 	g.Go(func() error {
 		return serve(ctx, ltr, ln)
@@ -208,7 +208,7 @@ func main() {
 		}
 		log.Info().Msgf("SSHRecorder Listening over tailscale on :%s", c.SSHRecorder.Listener.Port)
 	default:
-		log.Fatal().Msgf("unknown listener type %s", c.Listener.Type)
+		log.Fatal().Msgf("unknown listener type %s", c.SSHRecorder.Listener.Type)
 	}
 	g.Go(func() error {
 		return serve(ctx, sr, ln)

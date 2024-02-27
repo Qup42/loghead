@@ -9,15 +9,19 @@ import (
 )
 
 type Config struct {
-	Listener    ListenerConfig
-	FileLogger  FileLoggerConfig
 	Log         LogConfig
-	Processors  ProcessorConfig
 	SSHRecorder SSHRecorderConfig
+	Loghead     LogheadConfig
 }
 
 type FileLoggerConfig struct {
-	Dir string
+	Enabled bool
+	Dir     string
+}
+
+type ForwardingConfig struct {
+	Enabled bool
+	Addr    string
 }
 
 type LogConfig struct {
@@ -26,10 +30,10 @@ type LogConfig struct {
 }
 
 type ProcessorConfig struct {
-	FileLogger bool
+	FileLogger FileLoggerConfig
 	Metrics    bool
 	Hostinfo   bool
-	Forward    string
+	Forward    ForwardingConfig
 }
 
 type ListenerConfig struct {
@@ -51,6 +55,11 @@ type SSHRecorderConfig struct {
 	Listener ListenerConfig
 }
 
+type LogheadConfig struct {
+	Processors ProcessorConfig
+	Listener   ListenerConfig
+}
+
 const (
 	JSONLogFormat = "json"
 	TextLogFormat = "text"
@@ -58,10 +67,17 @@ const (
 
 func GetProcessorConfig() ProcessorConfig {
 	return ProcessorConfig{
-		FileLogger: viper.GetBool("processors.filelogger"),
-		Metrics:    viper.GetBool("processors.metrics"),
-		Hostinfo:   viper.GetBool("processors.hostinfo"),
-		Forward:    viper.GetString("processors.forward"),
+		FileLogger: GetFileLoggerConfig(),
+		Metrics:    viper.GetBool("loghead.processors.metrics"),
+		Hostinfo:   viper.GetBool("loghead.processors.hostinfo"),
+		Forward:    GetForwardingConfig(),
+	}
+}
+
+func GetForwardingConfig() ForwardingConfig {
+	return ForwardingConfig{
+		Enabled: viper.GetBool("loghead.processors.forward.enabled"),
+		Addr:    viper.GetString("loghead.processors.forward.addr"),
 	}
 }
 
@@ -90,9 +106,17 @@ func GetSSHRecorderConfig() SSHRecorderConfig {
 	}
 }
 
+func GetLogheadConfig() LogheadConfig {
+	return LogheadConfig{
+		Listener:   GetListenerConfig("loghead"),
+		Processors: GetProcessorConfig(),
+	}
+}
+
 func GetFileLoggerConfig() FileLoggerConfig {
 	return FileLoggerConfig{
-		Dir: viper.GetString("filelogger.dir"),
+		Dir:     viper.GetString("loghead.processors.filelogger.dir"),
+		Enabled: viper.GetBool("loghead.processors.filelogger.enabled"),
 	}
 }
 
@@ -165,10 +189,8 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		Listener:    GetListenerConfig("loghead"),
 		Log:         GetLogConfig(),
-		FileLogger:  GetFileLoggerConfig(),
-		Processors:  GetProcessorConfig(),
 		SSHRecorder: GetSSHRecorderConfig(),
+		Loghead:     GetLogheadConfig(),
 	}, nil
 }
