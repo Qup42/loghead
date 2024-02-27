@@ -45,7 +45,7 @@ changelog:
 
 kos:
   - repository: ghcr.io/qup42/loghead
-    base_image: "cgr.dev/chainguard/static" # default
+    base_image: "gcr.io/distroless/base-debian12"
     tags:
       - '{{.Version}}'
       - latest
@@ -60,7 +60,7 @@ kos:
       "org.opencontainers.image.revision": "{{.FullCommit}}"
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.licenses": "BSD-3-Clause"
-      "org.opencontainers.image.base.name": "cgr.dev/chainguard/static:latest"
+      "org.opencontainers.image.base.name": "gcr.io/distroless/base-debian12"
     sbom: none
     base_import_paths: true
 

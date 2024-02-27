@@ -9,6 +9,7 @@
 - feat: can set ts hostname and state dir via config
 - feat: write ts logs to logs as level trace
 - fix: log messages during ts listener startup
+- build: use distroless/base-debian12 as base image
 
 ## 0.0.3 (2024-02-25)
 
