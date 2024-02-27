@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/gorilla/mux"
 	"github.com/qup42/loghead/processor"
 	"github.com/qup42/loghead/ssh"
@@ -49,11 +49,11 @@ func handleSSHRecording(rec *ssh.RecordingService) http.Handler {
 		log.Trace().Msg("Starting SSH Session recording")
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("reading request body: %w", err)
+			return errors.Errorf("reading request body: %w", err)
 		}
 		err = rec.Record(body)
 		if err != nil {
-			return fmt.Errorf("recording sesion: %w", err)
+			return errors.Errorf("recording sesion: %w", err)
 		}
 		log.Trace().Msg("SSH Session recording finished")
 		return nil
@@ -72,7 +72,7 @@ func handleTailnodeLogs(
 
 		msg, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("reading request body: %w", err)
+			return errors.Errorf("reading request body: %w", err)
 		}
 		if r.Header.Get("Content-Encoding") == "zstd" {
 			msg = util.ZstdDecode(msg)
@@ -88,7 +88,7 @@ func handleTailnodeLogs(
 		var maps []map[string]interface{}
 		err = json.Unmarshal(msg, &maps)
 		if err != nil {
-			return fmt.Errorf("message unmarshal: %w", err)
+			return errors.Errorf("message unmarshal: %w", err)
 		}
 		log.Debug().Msgf("Received %d messages for %s/%s", len(maps)+1, collection, private_id)
 

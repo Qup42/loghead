@@ -2,7 +2,7 @@ package processor
 
 import (
 	"bytes"
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"net/http"
 )
 
@@ -17,11 +17,11 @@ func NewForwardingService(addr string) *ForwardingService {
 func (fwd *ForwardingService) Forward(m []byte) error {
 	req, err := http.NewRequest("POST", fwd.Addr, bytes.NewReader(m))
 	if err != nil {
-		return fmt.Errorf("Error creating forward request")
+		return errors.Errorf("Error creating forward request")
 	}
 	_, err = http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("Error forwarding log")
+		return errors.Errorf("Error forwarding log")
 	}
 	return nil
 }

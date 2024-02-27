@@ -1,7 +1,7 @@
 package types
 
 import (
-	"errors"
+	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"

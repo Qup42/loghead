@@ -1,7 +1,7 @@
 package processor
 
 import (
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -32,7 +32,7 @@ func (hs *HostInfoService) Process(msg LogtailMsg) error {
 		var hi HostInfo
 		err := mapstructure.Decode(h, &hi)
 		if err != nil {
-			return fmt.Errorf("unmarshaling HostInfo: %w", err)
+			return errors.Errorf("unmarshaling HostInfo: %w", err)
 		}
 	}
 	return nil

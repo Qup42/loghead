@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/efekarakus/termcolor"
 	"github.com/gorilla/mux"
 	"github.com/qup42/loghead/processor"
@@ -99,7 +100,7 @@ func makeTS(ctx context.Context, c types.ListenerConfig) (*tsnet.Server, error) 
 	if err != nil {
 		// TODO: handle error during teardown
 		_ = s.Close()
-		return nil, fmt.Errorf("create tsnet.Server: %w", err)
+		return nil, errors.Errorf("create tsnet.Server: %w", err)
 	}
 
 	return &s, nil

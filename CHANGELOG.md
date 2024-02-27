@@ -13,6 +13,7 @@
 - refactor: extract ts settings into substruct
 - refactor: encapsulate everything in services
 - refactor!: group loghead config options
+- feat: use errors that capture stacktraces
 
 ## 0.0.3 (2024-02-25)
 
