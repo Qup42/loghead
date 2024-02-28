@@ -157,20 +157,24 @@ func LoadConfig() (*Config, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	viper.SetDefault("listen_addr", "0.0.0.0:5678")
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.format", TextLogFormat)
 
-	viper.SetDefault("processor.filelogger", true)
-	viper.SetDefault("filelogger.dir", "./logs")
-	viper.SetDefault("processor.metrics", false)
-	viper.SetDefault("processor.hostinfo", false)
+	viper.SetDefault("loghead.processors.filelogger.enabled", true)
+	viper.SetDefault("loghead.processors.filelogger.dir", "./logs")
+	viper.SetDefault("loghead.processors.forward.enabled", false)
+	viper.SetDefault("loghead.processors.forward.dir", "https://log.tailscale.io")
+	viper.SetDefault("loghead.processors.metrics", false)
+	viper.SetDefault("loghead.processors.hostinfo", false)
+	viper.SetDefault("loghead.listener.type", "plain")
+	viper.SetDefault("loghead.listener.addr", "0.0.0.0")
+	viper.SetDefault("loghead.listener.port", "5678")
 
+	viper.SetDefault("ssh_recorder.dir", "./recordings")
 	viper.SetDefault("ssh_recorder.listener.type", "tsnet")
 	viper.SetDefault("ssh_recorder.listener.addr", "0.0.0.0")
 	viper.SetDefault("ssh_recorder.listener.port", "80")
 	viper.SetDefault("ssh_recorder.tsnet.controllURL", "https://controlplane.tailscale.com")
-	viper.SetDefault("ssh_recorder.dir", "./recordings")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, errors.New("Failed to read config")

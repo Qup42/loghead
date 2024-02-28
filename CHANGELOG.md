@@ -14,6 +14,7 @@
 - refactor: encapsulate everything in services
 - refactor!: group loghead config options
 - feat: use errors that capture stacktraces
+- fix: update config defaults
 
 ## 0.0.3 (2024-02-25)
 
