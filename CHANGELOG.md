@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## 0.0.4 (2024-02-28)
 
 - fix: detection if ts is up
 - style: bubble up and handle errors more consistently
