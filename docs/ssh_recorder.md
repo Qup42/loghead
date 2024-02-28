@@ -12,4 +12,7 @@ You have to [configure SSH session recording](https://tailscale.com/kb/1246/tail
 
 ## Usage
 
-The SSH session recorder writes the recorded sessions in the the recording directory. The recordings are in the [`asciinema`](https://asciinema.org/) format. The files have the format `ssh-session-{ns timestamp}-{random id}.cast`.
+The SSH session recorder writes the recorded sessions in the the recording directory.
+The recordings are in the [`asciinema`](https://asciinema.org/) format.
+The recordings are saved as `<stablenodeid>/<RFC 3339 timestamp>.cast` under the configured recordings directory.
+`<stablenodeid>` is the stable node id of the accessing node.

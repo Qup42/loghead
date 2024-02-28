@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+- feat: process ssh session recording metadata
+
 ## 0.0.4 (2024-02-28)
 
 - fix: detection if ts is up
