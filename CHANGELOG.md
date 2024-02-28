@@ -15,6 +15,7 @@
 - refactor!: group loghead config options
 - feat: use errors that capture stacktraces
 - fix: update config defaults
+- docs: update docs
 
 ## 0.0.3 (2024-02-25)
 

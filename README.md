@@ -5,21 +5,16 @@ An open source, self-hosted implementation of the logging backend for Tailscale 
 ## Features
 
 - :white_check_mark: Client logs
-- :warning: WIP: SSH session recording
+- :white_check_mark: WIP: SSH session recording
 - :x: Network flow logs (Won't be supported - buy Tailscale instead)
 
 ## Running loghead
 
-Simply execute `loghead`. **Additional configuration of the clients is required.**
-
-### Client logs
-
-Pass the client logs address to the tailscale daemon via the `TS_LOG_TARGET` environment variable.
-It can be defined in `/etc/default/tailscaled` with `TS_LOG_TARGET=https://foo.bar` on my system.
-
-### SSH session recording
-
-The control plane must send the address of the recorder to the client. This requires patching of the control plane (e.g. [headscale](https://github.com/juanfont/headscale)).
+- [Configure](./docs/config.md) loghead
+- Configure the clients
+    - SSH session recordings require patches to the control plane. It is planned to get these into [headscale](https://github.com/juanfont/headscale) in the future. For now you can use [this fork](https://github.com/Qup42/headscale/tree/feat/sshSessionRecording).
+    - Client logs require configuration of the tailscale daemon. Set the environment variable `TS_LOG_TARGET` to the address of loghead. On systemd systems you might be able to set this in `/etc/default/tailscaled`.
+- Run `loghead`
 
 ## Documentation
 
