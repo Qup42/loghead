@@ -7,7 +7,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/qup42/loghead/types"
 	"github.com/qup42/loghead/util"
-	"github.com/rs/zerolog/log"
+	"io"
 	"os"
 	"path"
 	"time"
@@ -62,12 +62,12 @@ func NewRecordingService(c types.SSHRecorderConfig) (*RecordingService, error) {
 	return &RecordingService{c.Dir}, nil
 }
 
-func (rec *RecordingService) Record(b []byte) error {
-	if len(b) == 0 {
-		log.Info().Msg("Discarding empty recording")
-		return nil
+func (rec *RecordingService) Record(s io.ReadCloser) error {
+	// the metadata is the first line
+	b, err := readSingleUntil(s, []byte("\n"))
+	if err != nil {
+		return errors.Errorf("reading stream until metadata: %w", err)
 	}
-	// TODO: processing the metadata should be done during the recording
 	meta, err := readCastMetadata(b)
 	if err != nil {
 		return errors.Errorf("reading recording metadata: %w", err)
@@ -86,7 +86,13 @@ func (rec *RecordingService) Record(b []byte) error {
 	if err != nil {
 		return errors.Errorf("opening ssh session recording file: %w", err)
 	}
+	// write the metadata out
 	_, err = f.Write(b)
+	if err != nil {
+		return errors.Errorf("writing ssh session recording: %w", err)
+	}
+	// stream the rest of the logs directly to the file
+	_, err = io.Copy(f, s)
 	if err != nil {
 		return errors.Errorf("writing ssh session recording: %w", err)
 	}
@@ -95,6 +101,26 @@ func (rec *RecordingService) Record(b []byte) error {
 		return errors.Errorf("closing ssh session recording file: %w", err)
 	}
 	return nil
+}
+
+func readSingleUntil(r io.Reader, sep []byte) ([]byte, error) {
+	// based on the implementation of io.ReadAll
+	b := make([]byte, 0, 512)
+	for {
+		_, err := r.Read(b[len(b) : len(b)+1])
+		if err != nil {
+			return b, err
+		}
+		b = b[:len(b)+1]
+		if bytes.Contains(b[len(b)-1:len(b)], sep) {
+			return b, nil
+		}
+
+		if len(b) == cap(b) {
+			// Add more capacity (let append pick how much).
+			b = append(b, 0)[:len(b)]
+		}
+	}
 }
 
 func readCastMetadata(b []byte) (*CastMetadata, error) {

@@ -10,6 +10,10 @@ Until then you can use [this fork](https://github.com/Qup42/headscale/tree/feat/
 
 You have to [configure SSH session recording](https://tailscale.com/kb/1246/tailscale-ssh-session-recording#turn-on-session-recording-in-acls) in you control plane's ACL rules.
 
+**Note:** due to how SSH session recording works the very long lived HTTP connections may occour.
+The endpoints for SSH session recording therefore do not enforce any timeouts on the HTTP connections.
+This may be vulnerable to a DOS if deployed publicly.
+
 ## Usage
 
 The SSH session recorder writes the recorded sessions in the the recording directory.

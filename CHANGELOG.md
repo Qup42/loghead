@@ -3,6 +3,7 @@
 ## Unreleased
 
 - feat: process ssh session recording metadata
+- feat: process ssh session recordings during the recording
 
 ## 0.0.4 (2024-02-28)
 

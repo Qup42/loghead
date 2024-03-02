@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
+	"time"
 )
 
 type FailableHandler func(http.ResponseWriter, *http.Request) error
@@ -47,11 +48,13 @@ func addClientLogsRoutes(
 func handleSSHRecording(rec *ssh.RecordingService) http.Handler {
 	return FailableHandler(func(w http.ResponseWriter, r *http.Request) error {
 		log.Trace().Msg("Starting SSH Session recording")
-		body, err := io.ReadAll(r.Body)
+		rc := http.NewResponseController(w)
+		// this is a streaming request, disable the read deadline
+		err := rc.SetReadDeadline(time.Time{})
 		if err != nil {
-			return errors.Errorf("reading request body: %w", err)
+			return errors.Errorf("setting read deadline: %w", err)
 		}
-		err = rec.Record(body)
+		err = rec.Record(r.Body)
 		if err != nil {
 			return errors.Errorf("recording sesion: %w", err)
 		}
