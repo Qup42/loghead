@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: automatically create network logs folder for filelogger
 - feat: support different collections in filelogger
 - feat: process ssh session recording metadata
 - feat: process ssh session recordings during the recording

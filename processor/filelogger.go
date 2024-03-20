@@ -18,6 +18,10 @@ func NewFileLoggerService(c types.FileLoggerConfig) (*FileLoggerService, error) 
 	if err != nil {
 		return nil, errors.Errorf("init FileLogger: %w", err)
 	}
+	err = util.EnsureFolderExists(filepath.Join(c.Dir, TailtrafficCollection))
+	if err != nil {
+		return nil, errors.Errorf("init FileLogger: %w", err)
+	}
 	return &FileLoggerService{c.Dir}, nil
 }
 
