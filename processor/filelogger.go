@@ -22,7 +22,7 @@ func NewFileLoggerService(c types.FileLoggerConfig) (*FileLoggerService, error) 
 }
 
 func (fl *FileLoggerService) Log(m LogtailMsg) error {
-	p := filepath.Join(fl.BaseDir, TailnodeCollection, m.PrivateID)
+	p := filepath.Join(fl.BaseDir, m.Collection, m.PrivateID)
 	f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return errors.Errorf("opening %s: %w", p, err)

@@ -97,8 +97,9 @@ func handleTailnodeLogs(
 
 		for _, m := range maps {
 			msg := processor.LogtailMsg{
-				Msg:       m,
-				PrivateID: private_id,
+				Msg:        m,
+				Collection: collection,
+				PrivateID:  private_id,
 			}
 			if fl != nil {
 				fl.Log(msg)
