@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- build: set container image annotation in addition to labels
 - chore: update .gitignore
 - feat: implement basic support for aggregating client metrics
 - refactor: rename log handling package

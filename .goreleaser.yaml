@@ -61,6 +61,16 @@ kos:
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.licenses": "BSD-3-Clause"
       "org.opencontainers.image.base.name": "gcr.io/distroless/base-debian12"
+    annotations:
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.authors": "Julian Mundhahs"
+      "org.opencontainers.image.source": "https://github.com/Qup42/loghead"
+      "org.opencontainers.image.documentation": "https://github.com/Qup42/loghead"
+      "org.opencontainers.image.title": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.licenses": "BSD-3-Clause"
+      "org.opencontainers.image.base.name": "gcr.io/distroless/base-debian12"
     sbom: none
     base_import_paths: true
 
