@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## 0.0.5 (2024-12-21)
 
 - build(deps): update dependency file
 - build: update goreleaser config
