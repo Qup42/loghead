@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: extract http listener creation into func
 - fix: error handling crash if binding a port failed
 - build(deps): update dependencies
 - feat: automatically create network logs folder for filelogger

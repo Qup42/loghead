@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"github.com/cockroachdb/errors"
 	"github.com/efekarakus/termcolor"
 	"github.com/gorilla/mux"
 	"github.com/qup42/loghead/processor"
@@ -16,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"tailscale.com/tsnet"
 	"time"
 )
 
@@ -50,18 +47,6 @@ func SetupLogging() {
 	}).With().Caller().Logger()
 }
 
-func waitTSReady(ctx context.Context, s *tsnet.Server) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	_, err := s.Up(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func serve(ctx context.Context, r *mux.Router, ln net.Listener) error {
 	s := http.Server{
 		Handler:      r,
@@ -83,27 +68,6 @@ func serve(ctx context.Context, r *mux.Router, ln net.Listener) error {
 	case err = <-serveErr:
 	}
 	return err
-}
-
-func makeTS(ctx context.Context, c types.ListenerConfig) (*tsnet.Server, error) {
-	s := tsnet.Server{
-		Logf: func(format string, v ...any) {
-			log.Trace().Str("ts", c.TS.HostName).Msgf(format, v...)
-		},
-		AuthKey:    c.TS.AuthKey,
-		ControlURL: c.TS.ControllURL,
-		Hostname:   c.TS.HostName,
-		Dir:        c.TS.Dir,
-	}
-
-	err := waitTSReady(ctx, &s)
-	if err != nil {
-		// TODO: handle error during teardown
-		_ = s.Close()
-		return nil, errors.Errorf("create tsnet.Server: %w", err)
-	}
-
-	return &s, nil
 }
 
 func main() {
@@ -153,66 +117,26 @@ func main() {
 	ltr := mux.NewRouter()
 	addClientLogsRoutes(ltr, c, fwd, fls, hs, ms)
 
-	var ln net.Listener
-	switch c.Loghead.Listener.Type {
-	case "plain":
-		ln, err = net.Listen("tcp", net.JoinHostPort(c.Loghead.Listener.Addr, c.Loghead.Listener.Port))
-		if err != nil {
-			log.Fatal().Err(err).Msg("starting listener")
-		}
-		defer ln.Close()
-		log.Info().Msgf("loghead Listening on %s:%s", c.Loghead.Listener.Addr, c.Loghead.Listener.Port)
-	case "tsnet":
-		s, err := makeTS(ctx, c.Loghead.Listener)
-		if err != nil {
-			log.Fatal().Err(err).Msg("starting ts")
-		}
-		defer s.Close()
-
-		ln, err = s.Listen("tcp", fmt.Sprintf(":%s", c.Loghead.Listener.Port))
-		if err != nil {
-			log.Fatal().Err(err).Msg("starting ts listener")
-		}
-		defer ln.Close()
-		log.Info().Msgf("loghead Listening over tailscale on :%s", c.Loghead.Listener.Port)
-	default:
-		log.Fatal().Msgf("unknown listener type %s", c.Loghead.Listener.Type)
+	logheadListener, err := types.MakeListener(ctx, c.Loghead.Listener, "loghead")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating loghead listener")
 	}
+	defer logheadListener.Close()
 	g.Go(func() error {
-		return serve(ctx, ltr, ln)
+		return serve(ctx, ltr, logheadListener.Listener)
 	})
 
 	// SSH session recording
 	sr := mux.NewRouter()
 	addSSHRecordingRoutes(sr, rs)
 
-	//	var ln net.Listener
-	switch c.SSHRecorder.Listener.Type {
-	case "plain":
-		ln, err = net.Listen("tcp", net.JoinHostPort(c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port))
-		if err != nil {
-			log.Fatal().Err(err).Msg("starting listener")
-		}
-		defer ln.Close()
-		log.Info().Msgf("SSHRecorder Listening on %s:%s", c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port)
-	case "tsnet":
-		s, err := makeTS(ctx, c.SSHRecorder.Listener)
-		if err != nil {
-			log.Fatal().Err(err).Msg("starting ts")
-		}
-		defer s.Close()
-
-		ln, err = s.Listen("tcp", fmt.Sprintf(":%s", c.SSHRecorder.Listener.Port))
-		if err != nil {
-			log.Fatal().Err(err).Msg("starting ts listener")
-		}
-		defer ln.Close()
-		log.Info().Msgf("SSHRecorder Listening over tailscale on :%s", c.SSHRecorder.Listener.Port)
-	default:
-		log.Fatal().Msgf("unknown listener type %s", c.SSHRecorder.Listener.Type)
+	sshListener, err := types.MakeListener(ctx, c.SSHRecorder.Listener, "SSHRecorder")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating SSHRecorder listener")
 	}
+	defer sshListener.Close()
 	g.Go(func() error {
-		return serve(ctx, sr, ln)
+		return serve(ctx, sr, sshListener.Listener)
 	})
 
 	err = g.Wait()
