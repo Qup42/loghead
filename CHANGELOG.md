@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: error handling crash if binding a port failed
 - build(deps): update dependencies
 - feat: automatically create network logs folder for filelogger
 - feat: support different collections in filelogger

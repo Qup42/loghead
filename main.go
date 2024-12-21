@@ -157,23 +157,23 @@ func main() {
 	switch c.Loghead.Listener.Type {
 	case "plain":
 		ln, err = net.Listen("tcp", net.JoinHostPort(c.Loghead.Listener.Addr, c.Loghead.Listener.Port))
-		defer ln.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting listener")
 		}
+		defer ln.Close()
 		log.Info().Msgf("loghead Listening on %s:%s", c.Loghead.Listener.Addr, c.Loghead.Listener.Port)
 	case "tsnet":
 		s, err := makeTS(ctx, c.Loghead.Listener)
-		defer s.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting ts")
 		}
+		defer s.Close()
 
 		ln, err = s.Listen("tcp", fmt.Sprintf(":%s", c.Loghead.Listener.Port))
-		defer ln.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting ts listener")
 		}
+		defer ln.Close()
 		log.Info().Msgf("loghead Listening over tailscale on :%s", c.Loghead.Listener.Port)
 	default:
 		log.Fatal().Msgf("unknown listener type %s", c.Loghead.Listener.Type)
@@ -190,23 +190,23 @@ func main() {
 	switch c.SSHRecorder.Listener.Type {
 	case "plain":
 		ln, err = net.Listen("tcp", net.JoinHostPort(c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port))
-		defer ln.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting listener")
 		}
+		defer ln.Close()
 		log.Info().Msgf("SSHRecorder Listening on %s:%s", c.SSHRecorder.Listener.Addr, c.SSHRecorder.Listener.Port)
 	case "tsnet":
 		s, err := makeTS(ctx, c.SSHRecorder.Listener)
-		defer s.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting ts")
 		}
+		defer s.Close()
 
 		ln, err = s.Listen("tcp", fmt.Sprintf(":%s", c.SSHRecorder.Listener.Port))
-		defer ln.Close()
 		if err != nil {
 			log.Fatal().Err(err).Msg("starting ts listener")
 		}
+		defer ln.Close()
 		log.Info().Msgf("SSHRecorder Listening over tailscale on :%s", c.SSHRecorder.Listener.Port)
 	default:
 		log.Fatal().Msgf("unknown listener type %s", c.SSHRecorder.Listener.Type)
