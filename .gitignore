@@ -1,11 +1,9 @@
 # goreleaser output
 dist/
-# logging destinations
-logs/
+# destinations for local testing
+client-logs/
 recordings/
 # binary
 loghead
 # IDEs
 .idea/
-# go away with dirty state
-Makefile

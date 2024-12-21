@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore: update .gitignore
 - feat: implement basic support for aggregating client metrics
 - refactor: rename log handling package
 - refactor: extract http listener creation into func
