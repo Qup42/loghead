@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
-version: 1
+version: 2
 
 before:
   hooks:
@@ -44,7 +44,8 @@ changelog:
       - "^test:"
 
 kos:
-  - repository: ghcr.io/qup42/loghead
+  - repositories:
+      - "ghcr.io/qup42/loghead"
     base_image: "gcr.io/distroless/base-debian12"
     tags:
       - '{{.Version}}'
