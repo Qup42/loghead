@@ -5,6 +5,7 @@ import (
 	"github.com/efekarakus/termcolor"
 	"github.com/gorilla/mux"
 	"github.com/qup42/loghead/logs"
+	"github.com/qup42/loghead/node_metrics"
 	"github.com/qup42/loghead/ssh"
 	"github.com/qup42/loghead/types"
 	"github.com/rs/zerolog"
@@ -107,6 +108,11 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not create SSH Recorder")
 	}
+	var nms *node_metrics.NodeMetricsService
+	nms, err = node_metrics.NewNodeMetricsService(c.NodeMetrics)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not create Node Metrics")
+	}
 
 	ctx := context.Background()
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
@@ -138,6 +144,21 @@ func main() {
 	g.Go(func() error {
 		return serve(ctx, sr, sshListener.Listener)
 	})
+
+	// Node metrics
+	if c.NodeMetrics.Enabled {
+		nm := mux.NewRouter()
+		addNodeMetricsRoutes(nm, c, nms)
+
+		nodeMetricsListener, err := types.MakeListener(ctx, c.NodeMetrics.Listener, "NodeMetrics")
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating NodeMetrics listener")
+		}
+		defer nodeMetricsListener.Close()
+		g.Go(func() error {
+			return serve(ctx, nm, nodeMetricsListener.Listener)
+		})
+	}
 
 	err = g.Wait()
 	if err != nil {

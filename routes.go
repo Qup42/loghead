@@ -5,6 +5,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/gorilla/mux"
 	"github.com/qup42/loghead/logs"
+	"github.com/qup42/loghead/node_metrics"
 	"github.com/qup42/loghead/ssh"
 	"github.com/qup42/loghead/types"
 	"github.com/qup42/loghead/util"
@@ -41,6 +42,16 @@ func addClientLogsRoutes(
 	r.Handle("/c/{collection:[a-zA-Z0-9-_.]+}/{private_id:[0-9a-f]+}", handleTailnodeLogs(fwd, fl, hi, ms)).Methods(http.MethodPost)
 	if c.Loghead.Processors.Metrics {
 		r.Handle("/metrics", handleMetrics(ms))
+	}
+	r.NotFoundHandler = handleNotFound()
+}
+
+func addNodeMetricsRoutes(
+	r *mux.Router,
+	c *types.Config,
+	nm *node_metrics.NodeMetricsService) {
+	if c.NodeMetrics.Enabled {
+		r.Handle("/metrics", handleNodeMetrics(nm))
 	}
 	r.NotFoundHandler = handleNotFound()
 }
@@ -119,6 +130,10 @@ func handleTailnodeLogs(
 
 func handleMetrics(ms *logs.MetricsService) http.Handler {
 	return ms.PromHandler()
+}
+
+func handleNodeMetrics(nm *node_metrics.NodeMetricsService) http.Handler {
+	return nm.PromHandler()
 }
 
 func handleNotFound() http.Handler {

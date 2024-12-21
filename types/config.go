@@ -12,6 +12,7 @@ type Config struct {
 	Log         LogConfig
 	SSHRecorder SSHRecorderConfig
 	Loghead     LogheadConfig
+	NodeMetrics NodeMetricsConfig
 }
 
 type FileLoggerConfig struct {
@@ -58,6 +59,12 @@ type SSHRecorderConfig struct {
 type LogheadConfig struct {
 	Processors ProcessorConfig
 	Listener   ListenerConfig
+}
+
+type NodeMetricsConfig struct {
+	Enabled  bool
+	Targets  []string
+	Listener ListenerConfig
 }
 
 const (
@@ -110,6 +117,14 @@ func GetLogheadConfig() LogheadConfig {
 	return LogheadConfig{
 		Listener:   GetListenerConfig("loghead"),
 		Processors: GetProcessorConfig(),
+	}
+}
+
+func GetNodeMetricsConfig() NodeMetricsConfig {
+	return NodeMetricsConfig{
+		Enabled:  viper.GetBool("node_metrics.enabled"),
+		Targets:  viper.GetStringSlice("node_metrics.targets"),
+		Listener: GetListenerConfig("node_metrics"),
 	}
 }
 
@@ -176,6 +191,12 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("ssh_recorder.listener.port", "80")
 	viper.SetDefault("ssh_recorder.tsnet.controllURL", "https://controlplane.tailscale.com")
 
+	viper.SetDefault("node_metrics.enabled", false)
+	viper.SetDefault("node_metrics.targets", []string{})
+	viper.SetDefault("node_metrics.listener.type", "plain")
+	viper.SetDefault("node_metrics.listener.addr", "0.0.0.0")
+	viper.SetDefault("node_metrics.listener.port", "5679")
+
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, errors.New("Failed to read config")
 	}
@@ -196,5 +217,6 @@ func LoadConfig() (*Config, error) {
 		Log:         GetLogConfig(),
 		SSHRecorder: GetSSHRecorderConfig(),
 		Loghead:     GetLogheadConfig(),
+		NodeMetrics: GetNodeMetricsConfig(),
 	}, nil
 }

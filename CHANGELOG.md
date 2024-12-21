@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: implement basic support for aggregating client metrics
 - refactor: rename log handling package
 - refactor: extract http listener creation into func
 - fix: error handling crash if binding a port failed
