@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- build(deps): update dependencies
 - feat: automatically create network logs folder for filelogger
 - feat: support different collections in filelogger
 - feat: process ssh session recording metadata
