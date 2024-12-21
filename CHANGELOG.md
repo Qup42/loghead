@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- build(deps): update dependency file
 - build: update goreleaser config
 - build: set container image annotation in addition to labels
 - chore: update .gitignore

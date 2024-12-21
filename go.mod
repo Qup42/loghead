@@ -11,6 +11,8 @@ require (
 	github.com/klauspost/compress v1.17.11
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus/client_model v0.6.1
+	github.com/prometheus/common v0.61.0
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/viper v1.19.0
 	golang.org/x/sync v0.10.0
@@ -82,8 +84,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus-community/pro-bing v0.5.0 // indirect
-	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.61.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/safchain/ethtool v0.5.9 // indirect
