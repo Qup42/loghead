@@ -1,4 +1,4 @@
-package processor
+package logs
 
 type LogtailMsg struct {
 	Msg        map[string]interface{}

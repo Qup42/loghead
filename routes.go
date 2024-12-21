@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/cockroachdb/errors"
 	"github.com/gorilla/mux"
-	"github.com/qup42/loghead/processor"
+	"github.com/qup42/loghead/logs"
 	"github.com/qup42/loghead/ssh"
 	"github.com/qup42/loghead/types"
 	"github.com/qup42/loghead/util"
@@ -33,10 +33,10 @@ func addSSHRecordingRoutes(
 func addClientLogsRoutes(
 	r *mux.Router,
 	c *types.Config,
-	fwd *processor.ForwardingService,
-	fl *processor.FileLoggerService,
-	hi *processor.HostInfoService,
-	ms *processor.MetricsService) {
+	fwd *logs.ForwardingService,
+	fl *logs.FileLoggerService,
+	hi *logs.HostInfoService,
+	ms *logs.MetricsService) {
 
 	r.Handle("/c/{collection:[a-zA-Z0-9-_.]+}/{private_id:[0-9a-f]+}", handleTailnodeLogs(fwd, fl, hi, ms)).Methods(http.MethodPost)
 	if c.Loghead.Processors.Metrics {
@@ -64,10 +64,10 @@ func handleSSHRecording(rec *ssh.RecordingService) http.Handler {
 }
 
 func handleTailnodeLogs(
-	fwd *processor.ForwardingService,
-	fl *processor.FileLoggerService,
-	hi *processor.HostInfoService,
-	ms *processor.MetricsService) http.Handler {
+	fwd *logs.ForwardingService,
+	fl *logs.FileLoggerService,
+	hi *logs.HostInfoService,
+	ms *logs.MetricsService) http.Handler {
 	return FailableHandler(func(w http.ResponseWriter, r *http.Request) error {
 		vars := mux.Vars(r)
 		collection := vars["collection"]
@@ -96,7 +96,7 @@ func handleTailnodeLogs(
 		log.Debug().Msgf("Received %d messages for %s/%s", len(maps)+1, collection, private_id)
 
 		for _, m := range maps {
-			msg := processor.LogtailMsg{
+			msg := logs.LogtailMsg{
 				Msg:        m,
 				Collection: collection,
 				PrivateID:  private_id,
@@ -117,7 +117,7 @@ func handleTailnodeLogs(
 	})
 }
 
-func handleMetrics(ms *processor.MetricsService) http.Handler {
+func handleMetrics(ms *logs.MetricsService) http.Handler {
 	return ms.PromHandler()
 }
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: rename log handling package
 - refactor: extract http listener creation into func
 - fix: error handling crash if binding a port failed
 - build(deps): update dependencies

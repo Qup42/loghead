@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/efekarakus/termcolor"
 	"github.com/gorilla/mux"
-	"github.com/qup42/loghead/processor"
+	"github.com/qup42/loghead/logs"
 	"github.com/qup42/loghead/ssh"
 	"github.com/qup42/loghead/types"
 	"github.com/rs/zerolog"
@@ -82,26 +82,26 @@ func main() {
 
 	log.Debug().Msgf("Config: %+v", c)
 
-	var fls *processor.FileLoggerService
-	var fwd *processor.ForwardingService
-	var hs *processor.HostInfoService
-	var ms *processor.MetricsService
+	var fls *logs.FileLoggerService
+	var fwd *logs.ForwardingService
+	var hs *logs.HostInfoService
+	var ms *logs.MetricsService
 	var rs *ssh.RecordingService
 	if c.Loghead.Processors.FileLogger.Enabled {
-		fls, err = processor.NewFileLoggerService(c.Loghead.Processors.FileLogger)
+		fls, err = logs.NewFileLoggerService(c.Loghead.Processors.FileLogger)
 		if err != nil {
 			log.Fatal().Err(err)
 		}
 	}
 	if c.Loghead.Processors.Metrics {
-		ms = processor.NewMetricsService()
+		ms = logs.NewMetricsService()
 	}
 	if c.Loghead.Processors.Hostinfo {
-		hs = &processor.HostInfoService{}
+		hs = &logs.HostInfoService{}
 	}
 	if c.Loghead.Processors.Forward.Enabled {
 		log.Info().Msgf("Enableing forwarder to %s", c.Loghead.Processors.Forward.Addr)
-		fwd = processor.NewForwardingService(c.Loghead.Processors.Forward.Addr)
+		fwd = logs.NewForwardingService(c.Loghead.Processors.Forward.Addr)
 	}
 	rs, err = ssh.NewRecordingService(c.SSHRecorder)
 	if err != nil {
