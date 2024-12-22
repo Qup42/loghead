@@ -52,6 +52,7 @@ kos:
       - latest
     platforms:
       - linux/amd64
+      - linux/arm64
     labels:
       "org.opencontainers.image.created": "{{.Date}}"
       "org.opencontainers.image.authors": "Julian Mundhahs"
