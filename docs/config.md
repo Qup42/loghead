@@ -40,7 +40,7 @@ loghead:
       authKey: ""
       controllURL: "https://controllplane.tailscale.com"
       hostname: "" # hostname of the tsnet service
-      dir: "" # where state is stored
+      dir: "/tsnet-state/loghead" # where state is stored
 
 
 ssh_recorder:
@@ -53,7 +53,7 @@ ssh_recorder:
       authKey: ""
       controllURL: "https://controllplane.tailscale.com"
       hostname: "" # hostname of the tsnet service
-      dir: "" # where state is stored
+      dir: "/tsnet-state/ssh_recorder" # where state is stored
 
 node_metrics:
   listener:
@@ -64,7 +64,7 @@ node_metrics:
       authKey: ""
       controllURL: "https://controllplane.tailscale.com"
       hostname: "" # hostname of the tsnet service
-      dir: "" # where state is stored
+      dir: "/tsnet-state/node_metrics" # where state is stored
 ```
 
 [^1]: Only the name `config` is fixed. All formats supported by viper (JSON, YAML, TOML, HCL, envfile and Java properties config files) are supported. YAML is the recommended format.

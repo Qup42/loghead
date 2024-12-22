@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat!: add defaults for tsnet listener state directories
 - docs: improve docs and add docs on Client metrics
 
 ## 0.0.5 (2024-12-21)

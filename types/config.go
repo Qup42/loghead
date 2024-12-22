@@ -185,12 +185,14 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("loghead.listener.addr", "0.0.0.0")
 	viper.SetDefault("loghead.listener.port", "5678")
 	viper.SetDefault("loghead.listener.tsnet.controllURL", "https://controlplane.tailscale.com")
+	viper.SetDefault("loghead.listener.tsnet.dir", "/tsnet-state/loghead")
 
 	viper.SetDefault("ssh_recorder.dir", "./recordings")
 	viper.SetDefault("ssh_recorder.listener.type", "tsnet")
 	viper.SetDefault("ssh_recorder.listener.addr", "0.0.0.0")
 	viper.SetDefault("ssh_recorder.listener.port", "80")
 	viper.SetDefault("ssh_recorder.listener.tsnet.controllURL", "https://controlplane.tailscale.com")
+	viper.SetDefault("ssh_recorder.listener.tsnet.dir", "/tsnet-state/ssh_recorder")
 
 	viper.SetDefault("node_metrics.enabled", false)
 	viper.SetDefault("node_metrics.targets", []string{})
@@ -198,6 +200,7 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("node_metrics.listener.addr", "0.0.0.0")
 	viper.SetDefault("node_metrics.listener.port", "5679")
 	viper.SetDefault("node_metrics.listener.tsnet.controllURL", "https://controlplane.tailscale.com")
+	viper.SetDefault("node_metrics.listener.tsnet.dir", "/tsnet-state/node_metrics")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, errors.New("Failed to read config")
