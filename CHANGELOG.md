@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- build: update project description
 - feat!: add defaults for tsnet listener state directories
 - docs: improve docs and add docs on Client metrics
 

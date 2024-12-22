@@ -1,6 +1,6 @@
 # loghead
 
-An open source, self-hosted implementation of the logging backend for Tailscale clients.
+An open source, self-hosted backend for collecting logs and metrics from Tailscale clients.
 
 ## Features
 
