@@ -1,9 +1,12 @@
 # docker
 
-It is also possible to deploy loghead in docker. See an example deployment below that uses docker compose.
+It is also possible to deploy loghead in docker. See an example deployment below that uses docker compose and traefik.
 
-Note that this deployment does not use the default configuration.
-The directory for tailscale's state has been set.
+> [!NOTE]
+> This deployment does not use the default configuration.
+
+> [!TIP]
+> By persisting the state directory of any tsnet listeners you use, an authkey is only required for the first start or if the login expires.
 
 ```yaml
 version: "3.9"
@@ -13,8 +16,7 @@ services:
     image: ghcr.io/qup42/loghead/loghead
     volumes:
       - ./config.yaml:/etc/loghead/config.yaml
-        # persist tsnet's state. Without this a valid authkey is required on every start.
-        # When the state is persistet an authkey is only required when the node is expired.
+        # Persist the state of the tsnet listener for SSH session recording
       - ./state:/ssh-state
       - ./client-logs:/logs
       - ./ssh-sessions:/recordings

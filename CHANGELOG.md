@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+- docs: improve docs and add docs on Client metrics
+
 ## 0.0.5 (2024-12-21)
 
 - build(deps): update dependency file
