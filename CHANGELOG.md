@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore: update dependencies
 - docs: document updating dependencies
 
 ## 0.0.6 (2024-12-22)
