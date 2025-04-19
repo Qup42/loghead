@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- docs: document updating dependencies
+
+## 0.0.6 (2024-12-22)
+
 - build: also build container image for linux/arm64
 - build: update project description
 - feat!: add defaults for tsnet listener state directories
